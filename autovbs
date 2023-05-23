@@ -1,0 +1,187 @@
+StartTime = Timer '记录开始时间
+'选择文件夹路径
+Set fso = CreateObject("Scripting.FileSystemObject")
+Set folder = fso.GetFolder("G:\word") '替换为你的文件夹路径
+'批量处理文件夹下的doc、docx文件
+For Each file In folder.Files
+If LCase(Right(file.Name, 4)) = "docx" Or LCase(Right(file.Name, 3)) = "doc" Then '仅处理doc、docx文件
+'调取不同的word宏代码
+Call A(file) '批量选择文件夹内的文档页面布局
+Call B(file) '样式
+Call C(file) '排版逻辑
+Call D(file) '图片处理
+Call E(file) '表格处理
+Call F(file) '格式化调整
+End If
+Next
+EndTime = Timer '记录结束时间
+'函数A：批量选择文件夹内的文档页面布局
+Sub A(file)
+Set objWord = CreateObject("Word.Application")
+objWord.Visible = True
+Set objDoc = objWord.Documents.Open(file.Path)
+With objDoc.PageSetup
+.PaperSize = wdPaperA4
+.Orientation = wdOrientPortrait
+.TopMargin = CentimetersToPoints(2)
+.BottomMargin = CentimetersToPoints(2)
+.LeftMargin = CentimetersToPoints(2)
+.RightMargin = CentimetersToPoints(2)
+.Gutter = CentimetersToPoints(0)
+.HeaderDistance = CentimetersToPoints(1.27)
+.FooterDistance = CentimetersToPoints(1.27)
+.PageNumbers.RestartNumberingAtSection = True
+End With
+objDoc.Save
+objDoc.Close
+objWord.Quit
+End Sub
+'函数B：样式
+Sub B(file)
+Set objWord = CreateObject("Word.Application")
+objWord.Visible = True
+Set objDoc = objWord.Documents.Open(file.Path)
+'定义样式
+With objDoc.Styles("Heading 1")
+.Font.Name = "宋体"
+.Font.Size = 16
+.Font.Color = wdColorBlack
+.ParagraphFormat.LineSpacingRule = wdLineSpaceSingle
+.ParagraphFormat.Alignment = wdAlignParagraphCenter
+End With
+With objDoc.Styles("Heading 2")
+.Font.Name = "宋体"
+.Font.Size = 14
+.Font.Color = wdColorBlack
+.ParagraphFormat.LineSpacingRule = wdLineSpaceSingle
+.ParagraphFormat.Alignment = wdAlignParagraphLeft
+End With
+With objDoc.Styles("Normal")
+.Font.Name = "宋体"
+.Font.Size = 12
+.Font.Color = wdColorBlack
+.ParagraphFormat.LineSpacingRule = wdLineSpaceMultiple
+.ParagraphFormat.LineSpacing = 1.5
+.ParagraphFormat.Alignment = wdAlignParagraphJustify
+End With
+objDoc.Save
+objDoc.Close
+objWord.Quit
+End Sub
+'函数C：排版逻辑
+Sub C(file)
+Set objWord = CreateObject("Word.Application")
+objWord.Visible = True
+Set objDoc = objWord.Documents.Open(file.Path)
+'按照大纲级别设置标题级别
+For Each para In objDoc.Paragraphs
+If para.Style = "Heading 1" Then
+para.Range.ListFormat.ApplyListTemplate ListTemplate:=ListGalleries(wdOutlineNumberGallery).ListTemplates(1), ContinuePreviousList:=False, ApplyTo:=wdListApplyToWholeList
+ElseIf para.Style = "Heading 2" Then
+para.Range.ListFormat.ApplyListTemplate ListTemplate:=ListGalleries(wdOutlineNumberGallery).ListTemplates(2), ContinuePreviousList:=False, ApplyTo:=wdListApplyToWholeList
+Else
+para.Style = "Normal"
+End If
+Next
+objDoc.Save
+objDoc.Close
+objWord.Quit
+End Sub
+'函数D：图片处理
+Sub D(file)
+Set objWord = CreateObject("Word.Application")
+objWord.Visible = True
+Set objDoc = objWord.Documents.Open(file.Path)
+'插入图片并格式化处理和位置调整
+For Each shape In objDoc.Shapes
+If shape.Type = msoPicture Then
+shape.Height = CentimetersToPoints(8)
+shape.Width = CentimetersToPoints(8)
+shape.WrapFormat.Type = wdWrapTight
+shape.WrapFormat.Side = wdWrapBoth
+shape.RelativeVerticalPosition = wdRelativeVerticalPositionParagraph
+shape.RelativeHorizontalPosition = wdRelativeHorizontalPositionMargin
+shape.Left = CentimetersToPoints(2)
+shape.Top = CentimetersToPoints(2)
+End If
+Next
+objDoc.Save
+objDoc.Close
+objWord.Quit
+End Sub
+'函数E：表格处理
+Sub E(file)
+Set objWord = CreateObject("Word.Application")
+objWord.Visible = True
+Set objDoc = objWord.Documents.Open(file.Path)
+'自动绘制和合并表格，并设置相关样式
+Set objTable = objDoc.Tables.Add(objDoc.Range(0, 0), 5, 5)
+objTable.Range.Font.Name = "宋体"
+objTable.Range.Font.Size = 12
+objTable.Range.Font.Color = wdColorBlack
+objTable.Range.ParagraphFormat.LineSpacingRule = wdLineSpaceMultiple
+objTable.Range.ParagraphFormat.LineSpacing = 1.5
+objTable.Range.ParagraphFormat.Alignment = wdAlignParagraphCenter
+objTable.PreferredWidth = CentimetersToPoints(16)
+objTable.AllowAutoFit = False
+objTable.Columns(1).Width = CentimetersToPoints(4)
+objTable.Columns(2).Width = CentimetersToPoints(4)
+objTable.Columns(3).Width = CentimetersToPoints(4)
+objTable.Columns(4).Width = CentimetersToPoints(2)
+objTable.Columns(5).Width = CentimetersToPoints(2)
+objTable.Rows(1).Cells.Merge
+objTable.Rows(1).Range.Font.Bold = True
+objTable.Rows(1).Range.ParagraphFormat.LineSpacingRule = wdLineSpaceSingle
+objTable.Rows(1).Range.ParagraphFormat.Alignment = wdAlignParagraphCenter
+objTable.Rows(1).Range.Cells.VerticalAlignment = wdCellAlignVerticalCenter
+objTable.Rows(1).Range.Cells.Shading.BackgroundPatternColor = wdColorGray10
+objTable.Rows(1).Range.Cells(1).Range.Text = "表头1"
+objTable.Rows(1).Range.Cells(2).Range.Text = "表头2"
+objTable.Rows(1).Range.Cells(3).Range.Text = "表头3"
+objTable.Rows(1).Range.Cells(4).Range.Text = "表头4"
+objTable.Rows(1).Range.Cells(5).Range.Text = "表头5"
+objTable.Rows(2).Range.Cells(1).Range.Text = "1"
+objTable.Rows(2).Range.Cells(2).Range.Text = "2"
+objTable.Rows(2).Range.Cells(3).Range.Text = "3"
+objTable.Rows(2).Range.Cells(4).Range.Text = "4"
+objTable.Rows(2).Range.Cells(5).Range.Text = "5"
+objDoc.Save
+objDoc.Close
+objWord.Quit
+End Sub
+'函数F：格式化调整
+Sub F(file)
+Set objWord = CreateObject("Word.Application")
+objWord.Visible = True
+Set objDoc = objWord.Documents.Open(file.Path)
+'格式化调整
+objDoc.Paragraphs.SpaceBefore = 0
+objDoc.Paragraphs.SpaceAfter = 0
+objDoc.Paragraphs.LineUnitBefore = 0
+objDoc.Paragraphs.LineUnitAfter = 0
+objDoc.Paragraphs.KeepWithNext = False
+objDoc.Paragraphs.KeepTogether = False
+objDoc.Paragraphs.WidowControl = True
+objDoc.Paragraphs.OrphanControl = True
+objDoc.Paragraphs.GrowAutofit = False
+objDoc.Paragraphs.ShrinkAutofit = False
+objDoc.Paragraphs.TabStops.ClearAll
+objDoc.Paragraphs.TabStops.Add Position:=CentimetersToPoints(5), Alignment:=wdAlignTabCenter, Leader:=wdTabLeaderSpaces
+objDoc.Save
+objDoc.Close
+objWord.Quit
+End Sub
+'函数G：显示代码运行的时间
+Sub ShowTime()
+StartTime = Timer '记录开始时间
+'你的代码
+EndTime = Timer '记录结束时间
+MsgBox "代码运行时间：" & FormatNumber(EndTime - StartTime, 2) & " 秒"
+End Sub
+'函数G：显示代码运行的时间
+Sub ShowTime()
+
+'你的代码
+
+MsgBox "代码运行时间：" & FormatNumber(EndTime - StartTime, 2) & " 秒"
+End Sub
