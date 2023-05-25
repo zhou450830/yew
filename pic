@@ -1,0 +1,263 @@
+Sub AdjustPictures()
+
+' 这段代码的主要功能是自动调整Word文档中所有的图片，使其符合页面大小，并且能够水平垂直居中。
+
+' 首先，使用For Each循环遍历所有InlineShape类型图片和所有Shape类型图片。针对每个图片，判断其是否是InlineShape类型。如果是，则继续判断它的高度和宽度比例，并进行缩放和居中处理；如果不是，则转换为InlineShape类型后再进行处理。
+
+' 接着，将每个图片的宽和高设为页面大小的70%。这里使用ActiveDocument.PageSetup.PageWidth和ActiveDocument.PageSetup.PageHeight来获取文档页面的宽度和高度，并将其乘以0.7得到图片的目标宽度和高度。
+
+' 最后，将该图片水平和垂直居中对齐。利用Range.ParagraphFormat对象中的Alignment属性设置水平居中，LineSpacingRule属性设置行距为多倍行距，LineSpacing属性将该图片的段落行距设为图片高度，使其在垂直方向上居中对齐。
+
+' 遍历所有图片
+Dim pic As Object
+For Each pic In ActiveDocument.Shapes
+    ' 将所有Shape类型图片转换为InlineShape类型
+    If pic.Type = msoLinkedPicture Or pic.Type = msoPicture Then
+        pic.ConvertToInlineShape
+    End If
+Next pic
+
+' 遍历所有InlineShape类型图片
+Dim img As InlineShape
+For Each img In ActiveDocument.InlineShapes
+    With img
+        ' 如果该图片比较胖，则旋转90度
+        If .Width > .Height Then
+            .Range.Select
+            Selection.ShapeRange.IncrementRotation 90
+        End If
+        
+        ' 将图片的宽和高设为页面大小的70%取实际图像尺寸 (像素)
+        Dim imageWidth As Double
+        Dim imageHeight As Double
+        Dim targetWidth As Double
+        Dim targetHeight As Double
+        
+        imageWidth = img.Width
+        imageHeight = img.Height
+        
+        targetWidth = ActiveDocument.PageSetup.PageWidth
+        targetHeight = imageHeight * (targetWidth / imageWidth) * 0.7
+        
+        .Width = targetWidth
+        .Height = targetHeight
+        
+        ' 水平垂直居中
+        .Range.ParagraphFormat.Alignment = wdAlignParagraphCenter ' 水平居中
+        .Range.ParagraphFormat.LineSpacingRule = wdLineSpaceMultiple ' 行距设为多倍行距
+        .Range.ParagraphFormat.LineSpacing = .Height ' 段落行距设为图片高度，使其在垂直方向上居中对齐
+    End With
+Next img
+End Sub
+
+
+
+Sub i()
+Dim i
+'这段VBA代码的作用是批量调整Word文档中的嵌入式图片的大小，使其在打印或查看时呈现出更好的效果。具体来说，该代码会遍历文档中的每一个嵌入式图片，判断其横/纵向大小，然后统一将其宽度设置为150mm。
+
+'具体解释如下：
+
+'使用For循环遍历文档中的所有嵌入式图片（For i = 1 To ActiveDocument.InlineShapes.Count）
+
+'如果图片的宽度大于高度，说明图片是横版（If ActiveDocument.InlineShapes(i).Width > ActiveDocument.InlineShapes(i).Height Then）
+
+'针对横版图片，将其宽度设置为150mm（ActiveDocument.InlineShapes(i).Width = 150 * 2.835）
+
+'如果图片的宽度小于等于高度，说明图片是竖版（Else）
+
+'针对竖版图片，同样将其宽度设置为150mm（ActiveDocument.InlineShapes(i).Width = 150 * 2.835）
+
+'循环结束
+
+'需要注意的是，该代码中的单位为mm，所以用到了一个换算系数2.835。如果需要调整为其他大小，可以修改代码中的150这个值。
+
+'另外，需要注意的是，该代码只针对文档中的嵌入式图片进行了处理，而不包括插入的图片。如果需要处理插入的图片，可以将代码修改为For i = 1 To ActiveDocument.Shapes.Count，并在处理时注意调整图片的宽度和高度。
+On Error Resume Next
+
+For i = 1 To ActiveDocument.InlineShapes.Count
+
+If ActiveDocument.InlineShapes(i).Width > ActiveDocument.InlineShapes(i).Height Then '如果图片的宽度大于高度，则图片为横版，
+
+ActiveDocument.InlineShapes(i).Width = 150 * 2.835 '设置宽度，单位为mm
+
+Else
+
+ActiveDocument.InlineShapes(i).Width = 150 * 2.835 '否则，图片为竖版，设置宽度，单位为mm
+
+End If
+
+Next
+
+End Sub
+
+
+Sub Adj()
+    Dim pic As Shape
+    
+    For Each pic In ActiveDocument.Shapes
+        If pic.Type = msoPicture Or pic.Type = msoLinkedPicture Then
+            '检查图像方向
+            If pic.Height > pic.Width Then
+                pic.Rotation = 90
+            End If
+
+            '调整图像大小
+            Dim targetWidth As Long, targetHeight As Long
+            targetWidth = Application.InchesToPoints(ActiveDocument.PageSetup.PageWidth) * 0.7
+            targetHeight = Application.InchesToPoints(ActiveDocument.PageSetup.PageHeight) * 0.7
+            If pic.Width > targetWidth Or pic.Height > targetHeight Then
+                pic.LockAspectRatio = msoFalse
+                If pic.Width / pic.Height >= targetWidth / targetHeight Then
+                    pic.Width = targetWidth
+                Else
+                    pic.Height = targetHeight
+                End If
+                pic.LockAspectRatio = msoTrue
+            End If
+
+            '居中图像
+            pic.Left = (ActiveDocument.PageSetup.PageWidth - pic.Width) / 2
+            pic.Top = (ActiveDocument.PageSetup.PageHeight - pic.Height) / 2
+        End If
+    Next pic
+End Sub
+
+Sub ResizePictures()
+    Dim pic As InlineShape
+    For Each pic In ActiveDocument.InlineShapes
+        If Not pic.LockAspectRatio Then
+            pic.Height = pic.Height * 0.8
+            pic.Width = pic.Width * 0.8
+        ElseIf pic.Width > pic.Height Then
+            pic.Height = pic.Width * 0.8
+        Else
+            pic.Width = pic.Height * 0.8
+        End If
+        pic.Range.ParagraphFormat.Alignment = wdAlignParagraphCenter
+    Next
+End Sub
+
+
+Sub ResizeAndCenterImages()
+    Dim img As InlineShape
+    
+    For Each img In ActiveDocument.InlineShapes
+        With img
+            If .Height > .Width Then ' if it is taller than wide
+                .Height = Application.CentimetersToPoints(20.32) ' resize to 20.32 cm (80% of A4)
+                .LockAspectRatio = True
+            Else ' if it is wider than tall
+                .Width = Application.CentimetersToPoints(20.32) ' resize to 20.32 cm (80% of A4)
+                .LockAspectRatio = True
+            End If
+            
+            ' center horizontally and vertically
+            .Range.ParagraphFormat.Alignment = wdAlignParagraphCenter
+            .Range.ParagraphFormat.LineSpacingRule = wdLineSpaceExactly
+            .Range.ParagraphFormat.SpaceBefore = 0
+            .Range.ParagraphFormat.SpaceAfter = 0
+        End With
+    Next img
+End Sub
+
+Sub AdjustPic()
+    Dim pic As InlineShape
+    
+    For Each pic In ActiveDocument.InlineShapes
+        ' If the picture is wider than it is tall, rotate it 90 degrees
+        If pic.Width > pic.Height Then
+            pic.Range.Select
+            Selection.ShapeRange.IncrementRotation 90
+        End If
+        
+        ' Set the width and height to 70% of the page size
+        pic.Width = ActiveDocument.PageSetup.PageWidth * 0.7
+        pic.Height = ActiveDocument.PageSetup.PageHeight * 0.7
+        
+        ' Center the picture horizontally and vertically
+        pic.Range.ParagraphFormat.Alignment = wdAlignParagraphCenter
+        pic.Range.ParagraphFormat.LineSpacingRule = wdLineSpaceExactly
+        pic.Range.ParagraphFormat.LineSpacing = pic.Height
+    Next pic
+End Sub
+
+Sub ConvertToInline()
+    Dim sh As Shape
+    For Each sh In ActiveDocument.Shapes
+        If sh.Type = msoLinkedPicture Or sh.Type = msoPicture Then
+            sh.ConvertToInlineShape
+        End If
+    Next sh
+
+    Dim img As InlineShape
+    
+    For Each img In ActiveDocument.InlineShapes
+        With img
+            If .Height > .Width Then ' if it is taller than wide
+                .Height = Application.CentimetersToPoints(20.32) ' resize to 20.32 cm (80% of A4)
+                .LockAspectRatio = True
+            Else ' if it is wider than tall
+                .Width = Application.CentimetersToPoints(20.32) ' resize to 20.32 cm (80% of A4)
+                .LockAspectRatio = True
+            End If
+            
+            ' center horizontally and vertically
+            .Range.ParagraphFormat.Alignment = wdAlignParagraphCenter
+            .Range.ParagraphFormat.LineSpacingRule = wdLineSpaceExactly
+            .Range.ParagraphFormat.SpaceBefore = 0
+            .Range.ParagraphFormat.SpaceAfter = 0
+        End With
+    Next img
+End Sub
+Sub ConvertToInline()
+    Dim sh As Shape
+    For Each sh In ActiveDocument.Shapes
+        If sh.Type = msoLinkedPicture Or sh.Type = msoPicture Then
+            sh.ConvertToInlineShape
+        End If
+    Next sh
+
+    Dim img As InlineShape
+    
+    For Each img In ActiveDocument.InlineShapes
+        With img
+            If .Height > .Width Then ' if it is taller than wide
+                .Height = Application.CentimetersToPoints(20.32) ' resize to 20.32 cm (80% of A4)
+                .LockAspectRatio = True
+            Else ' if it is wider than tall
+                .Width = Application.CentimetersToPoints(20.32) ' resize to 20.32 cm (80% of A4)
+                .LockAspectRatio = True
+            End If
+            
+            ' center horizontally and vertically
+            .Range.ParagraphFormat.Alignment = wdAlignParagraphCenter
+            .Range.ParagraphFormat.LineSpacingRule = wdLineSpaceExactly
+            .Range.ParagraphFormat.SpaceBefore = 0
+            .Range.ParagraphFormat.SpaceAfter = 0
+        End With
+    Next img
+End Sub
+
+
+
+Sub img()
+Dim i
+
+On Error Resume Next
+
+For i = 1 To ActiveDocument.InlineShapes.Count
+
+If ActiveDocument.InlineShapes(i).Width > ActiveDocument.InlineShapes(i).Height Then '如果图片的宽度大于高度，则图片为横版，
+
+ActiveDocument.InlineShapes(i).Width = 150 * 2.835 '设置宽度，单位为mm
+
+Else
+
+ActiveDocument.InlineShapes(i).Width = 150 * 2.835 '否则，图片为竖版，设置宽度，单位为mm
+
+End If
+
+Next
+
+End Sub
