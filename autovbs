@@ -4891,6 +4891,729 @@ ActiveWindow.View.Type = wdNormalView
 ActiveWindow.View.Type = wdPrintView
 End Sub
 
+1 选择文件夹，执行批量word宏修改样式 ，定义文档页面属性 
+
+Sub 文件夹格式()
+  '进行格式设置。当运行此宏时，会弹出一个文件夹对话框，让用户选择待处理文件所在的文件夹。然后，此宏会遍历文件夹中的所有 Word 文档，针对每个文档执行以下操作：
+  '设置文档页面，将页面方向设置为纵向、大小设置为 A4 纸张大小、边距设置为 2.5 厘米、页眉距离设置为 1 厘米、页脚距离设置为 0.5 厘米。  '对文档中的所有段落统一设置格式，包括行间距、段前段后间距、字体、字号等。
+  '针对不同级别的标题，分别设置其字号和加粗。  '对文档中所有表格设置样式，包括自动调整列宽、表格外边框线样式、居中对齐等。  '对图片标题设置样式，包括设置为加粗、设置字号为 10.5 号。  '在执行上述操作时，代码还采用了一些 VBA 内置函数，如 CentimetersToPoints、LinesToPoints 等，用于将长度单位转换为磅数，并且使用了 VBScript.RegExp 类来匹配图片标题的样式
+    Dim t
+    t = Timer
+    
+    Dim vDirectory As String
+    Dim theParagraph As Paragraph, theStr$
+    Dim reg As Object
+    Dim wrs As Characters
+
+    Dim oDoc As Document
+    With Application.FileDialog(msoFileDialogFolderPicker)
+        .Title = "选择待处理文件所在的文件夹"
+        .InitialFileName = "c:\"
+        If .Show Then
+            vDirectory = .SelectedItems(1) & "\"
+        Else
+            Exit Sub
+        End If
+    End With
+    vFile = Dir(vDirectory & "*.*", vbNormal)
+    Dim par As Paragraph
+    Dim tabl As Table
+    Do While vFile <> ""
+        Application.ScreenUpdating = False
+        Set oDoc = Documents.Open(FileName:=vDirectory & vFile)
+        '设置文档页面
+        With oDoc.PageSetup
+            .Orientation = wdOrientPortrait
+            .PageWidth = CentimetersToPoints(21)
+            .PageHeight = CentimetersToPoints(29.7)
+            .TopMargin = CentimetersToPoints(2.5)
+            .BottomMargin = CentimetersToPoints(2.5)
+            .LeftMargin = CentimetersToPoints(2.5)
+            .RightMargin = CentimetersToPoints(2.5)
+            .HeaderDistance = CentimetersToPoints(1)
+            .FooterDistance = CentimetersToPoints(0.5)
+        End With
+        oDoc.Select
+        With Selection
+            .ParagraphFormat.LineSpacingRule = wdLineSpaceExactly
+            .ParagraphFormat.SpaceBeforeAuto = False
+            .ParagraphFormat.SpaceAfter = 10
+            .ParagraphFormat.SpaceBefore = 10
+            .Range.Font.Name = "宋体" '设置正文中文字体为宋体
+            .Range.Font.Name = "Times New Roman" '设置正文英文和数字字体为宋体
+            .Range.Font.Size = 12 '设置正文字号为小四号
+            .Range.Font.Bold = False
+            .ParagraphFormat.LineSpacingRule = wdLineSpaceMultiple
+            .ParagraphFormat.LineSpacing = LinesToPoints(1.2)
+       
+        End With
+        
+
+       For Each par In oDoc.Paragraphs
+    '根据大纲级别，单独设置其字号并加粗
+    If (par.OutlineLevel = wdOutlineLevel1) Then
+        par.Range.Font.Bold = True
+        par.Range.Font.Size = 16
+        par.Range.Font.Name = "黑体"
+
+    ElseIf (par.OutlineLevel = wdOutlineLevel2) Then
+        par.Range.Font.Bold = True
+        par.Range.Font.Size = 15
+        par.Range.Font.Name = "黑体"
+
+    ElseIf (par.OutlineLevel = wdOutlineLevel3) Then
+        par.Range.Font.Bold = True
+        par.Range.Font.Size = 14
+        par.Range.Font.Name = "黑体"
+
+    ElseIf (par.OutlineLevel = wdOutlineLevel4) Then
+        par.Range.Font.Size = 12
+        par.Range.Font.Name = "仿宋"
+        par.Range.Font.Bold = True
+
+    ElseIf (par.OutlineLevel >= wdOutlineLevel5 And par.OutlineLevel <= wdOutlineLevel8) Then
+        par.Range.Font.Size = 10
+        par.Range.Font.Name = "仿宋"
+        par.Range.Font.Bold = True
+    ElseIf (par.OutlineLevel = wdOutlineLevel9) Then
+        par.Range.Font.Size = 9
+        par.Range.Font.Name = "仿宋"
+        par.Range.Font.Bold = True
+    End If
+Next
+
+        
+        '设置表格样式
+        For Each tabl In oDoc.Tables
+            tabl.AutoFitBehavior (wdAutoFitWindow)
+            tabl.Borders.OutsideLineStyle = wdLineStyleSingle
+            tabl.Borders.OutsideLineWidth = wdLineWidth025pt
+            tabl.Range.Rows.Alignment = wdAlignRowCenter
+            tabl.Select
+            Selection.Font.Size = 10.5
+            Selection.ParagraphFormat.Alignment = wdAlignParagraphCenter
+            Selection.MoveUp wdLine, 1, wdMove
+            Selection.EndKey wdLine, wdExtend
+            Selection.Font.Size = 10.5
+            Selection.Font.Bold = True
+        Next
+        
+      '设置图片标题样式
+    Set reg = CreateObject("VBScript.RegExp")
+        With reg
+            .Pattern = "^图\d+\s+"
+            For Each theParagraph In oDoc.Paragraphs
+                theStr = theParagraph.Range
+                If .test(theStr) Then
+                    theParagraph.Range.Font.Bold = True
+                     theParagraph.Range.Font.Size = 10.5
+                End If
+            Next
+        End With
+        Set reg = Nothing
+
+
+
+        oDoc.Save
+        oDoc.Close
+        vFile = Dir
+    Loop
+    MsgBox ("共用时" & Timer - t & "秒")
+End Sub
+
+
+
+Sub 删除无效样式()
+    For Each objStyle In ActiveDocument.Styles
+    On Error Resume Next
+    If objStyle.BuiltIn = False And objStyle.InUse = True Then
+    objStyle.Delete
+    End If
+    Next
+    End Sub
+
+Sub 删除页脚横线()
+With ActiveDocument.Sections(1).Headers(wdHeaderFooterPrimary).Range '进入页脚编辑状态
+.Delete '删除页眉中的内容
+.ParagraphFormat.Borders(wdBorderBottom).LineStyle = wdLineStyleNone '段落下边框线
+End With
+End Sub
+
+Sub 删除页眉横线()
+    ActiveWindow.ActivePane.View.SeekView = wdSeekCurrentPageHeader
+    Selection.ParagraphFormat.Borders(wdBorderBottom).LineStyle = wdLineStyleNone
+    ActiveWindow.ActivePane.View.SeekView = wdSeekMainDocument
+End Sub
+
+Sub 删除空格()
+ 
+'   清除段落前后空格
+    For a = 1 To ActiveDocument.Paragraphs.Count
+    Set sutRng = ActiveDocument.Paragraphs(a).Range
+    sutRng.MoveEnd wdCharacter, -1
+    sutRng.Text = Trim(sutRng.Text)
+    sutRng.MoveEnd wdCharacter, 1
+    ActiveDocument.Paragraphs(a).Range.Text = sutRng.Text
+    Next a
+
+End Sub
+
+ Sub 去除半角空格()
+Selection.Find.Execute Replace:=wdReplaceAll
+         '去除半角空格
+    Selection.Find.ClearFormatting
+    Selection.Find.Replacement.ClearFormatting
+    With Selection.Find
+        .Text = " "
+        .Replacement.Text = ""
+        .Forward = True
+        .Wrap = wdFindContinue
+        .Format = False
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchByte = True
+        .MatchWildcards = False
+        .MatchSoundsLike = False
+        .MatchAllWordForms = False
+    End With
+End Sub
+
+ Sub 去除全角空格()
+    Selection.Find.Execute Replace:=wdReplaceAll
+    '去除全角空格
+    Selection.Find.ClearFormatting
+    Selection.Find.Replacement.ClearFormatting
+    With Selection.Find
+        .Text = "　"
+        .Replacement.Text = ""
+        .Forward = True
+        .Wrap = wdFindContinue
+        .Format = False
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchByte = True
+        .MatchWildcards = False
+        .MatchSoundsLike = False
+        .MatchAllWordForms = False
+    End With
+End Sub
+
+Sub 删除空行()
+    Dim i As Paragraph
+    For Each i In ActiveDocument.Paragraphs
+        If Asc(i.Range) = 13 Then i.Range.Delete
+    Next
+End Sub
+
+ Sub 清除空行，空格()
+'   清除空行，空格
+    
+    Dim i As Paragraph, n As Long
+    Application.ScreenUpdating = False
+    For Each i In ActiveDocument.Paragraphs
+    If Len(i.Range) = 1 Then
+    i.Range.Delete
+    n = n + 1
+    End If
+    Selection.Find.ClearFormatting
+    Selection.Find.Replacement.ClearFormatting
+    With Selection.Find
+    .Text = "　"
+    .Replacement.Text = ""
+    .Wrap = wdFindContinue
+    End With
+    With Selection.Find
+    .Text = "vbTab"
+    .Replacement.Text = ""
+    .Wrap = wdFindContinue
+    End With
+    With Selection.Find
+    .Text = " "
+    .Replacement.Text = ""
+    .Wrap = wdFindContinue
+    End With
+    With Selection.Find
+        .Text = "^t"
+        .Replacement.Text = ""
+        .Forward = True
+        .Wrap = wdFindContinue
+        .Format = False
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchByte = True
+        .MatchWildcards = False
+        .MatchSoundsLike = False
+        .MatchAllWordForms = False
+    End With
+    Selection.Find.Execute Replace:=wdReplaceAll
+    Next
+    Application.ScreenUpdating = True
+    Options.AutoFormatAsYouTypeDeleteAutoSpaces = True
+    Selection.Find.ClearFormatting
+    Selection.Find.Replacement.ClearFormatting
+    With Selection.Find
+        .Text = " "
+        .Replacement.Text = ""
+        .Forward = True
+        .Wrap = wdFindContinue
+        .Format = False
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchByte = True
+        .MatchWildcards = False
+        .MatchSoundsLike = False
+        .MatchAllWordForms = False
+    End With
+    Selection.Find.Execute Replace:=wdReplaceAll
+    
+    Selection.WholeStory
+    With ActiveDocument.Styles(wdStyleNormal).Font
+        If .NameFarEast = .NameAscii Then
+            .NameAscii = ""
+        End If
+        .NameFarEast = ""
+    End With
+End Sub
+
+
+Sub 文件夹格式()
+    Dim t
+    t = Timer
+    
+    Dim vDirectory As String
+    Dim theParagraph As Paragraph, theStr$
+    Dim reg As Object
+    Dim wrs As Characters
+
+    Dim oDoc As Document
+    With Application.FileDialog(msoFileDialogFolderPicker)
+        .Title = "选择待处理文件所在的文件夹"
+        .InitialFileName = "c:\"
+        If .Show Then
+            vDirectory = .SelectedItems(1) & "\"
+        Else
+            Exit Sub
+        End If
+    End With
+    vFile = Dir(vDirectory & "*.*", vbNormal)
+    Dim par As Paragraph
+    Dim tabl As Table
+    Do While vFile <> ""
+        Application.ScreenUpdating = False
+        Set oDoc = Documents.Open(FileName:=vDirectory & vFile)
+        '设置文档页面
+        With oDoc.PageSetup
+            .Orientation = wdOrientPortrait
+            .PageWidth = CentimetersToPoints(21)
+            .PageHeight = CentimetersToPoints(29.7)
+            .TopMargin = CentimetersToPoints(2.5)
+            .BottomMargin = CentimetersToPoints(2.5)
+            .LeftMargin = CentimetersToPoints(2.5)
+            .RightMargin = CentimetersToPoints(2.5)
+            .HeaderDistance = CentimetersToPoints(1)
+            .FooterDistance = CentimetersToPoints(0.5)
+        End With
+        oDoc.Select
+        With Selection
+            .ParagraphFormat.LineSpacingRule = wdLineSpaceExactly
+            .ParagraphFormat.SpaceBeforeAuto = False
+            .ParagraphFormat.SpaceAfter = 10
+            .ParagraphFormat.SpaceBefore = 10
+            .Range.Font.Name = "宋体" '设置正文中文字体为宋体
+            .Range.Font.Name = "Times New Roman" '设置正文英文和数字字体为宋体
+            .Range.Font.Size = 12 '设置正文字号为小四号
+            .Range.Font.Bold = False
+            .ParagraphFormat.LineSpacingRule = wdLineSpaceMultiple
+            .ParagraphFormat.LineSpacing = LinesToPoints(1.2)
+       
+        End With
+        
+
+        For Each par In oDoc.Paragraphs
+           '根据大纲级别，单独设置其字号并加粗
+            If (par.OutlineLevel = wdOutlineLevel1) Then
+                par.Range.Font.Bold = True
+                par.Range.Font.Size = 16
+               
+            ElseIf (par.OutlineLevel = wdOutlineLevel2 Or par.OutlineLevel = wdOutlineLevel2) Then
+                par.Range.Font.Bold = True
+                par.Range.Font.Size = 14
+              
+             End If
+        Next
+        
+        '设置表格样式
+        For Each tabl In oDoc.Tables
+            tabl.AutoFitBehavior (wdAutoFitWindow)
+            tabl.Borders.OutsideLineStyle = wdLineStyleSingle
+            tabl.Borders.OutsideLineWidth = wdLineWidth025pt
+            tabl.Range.Rows.Alignment = wdAlignRowCenter
+            tabl.Select
+            Selection.Font.Size = 10.5
+            Selection.ParagraphFormat.Alignment = wdAlignParagraphCenter
+            Selection.MoveUp wdLine, 1, wdMove
+            Selection.EndKey wdLine, wdExtend
+            Selection.Font.Size = 10.5
+            Selection.Font.Bold = True
+        Next
+        
+      '设置图片标题样式
+    Set reg = CreateObject("VBScript.RegExp")
+        With reg
+            .Pattern = "^图\d+\s+"
+            For Each theParagraph In oDoc.Paragraphs
+                theStr = theParagraph.Range
+                If .test(theStr) Then
+                    theParagraph.Range.Font.Bold = True
+                     theParagraph.Range.Font.Size = 10.5
+                End If
+            Next
+        End With
+        Set reg = Nothing
+
+
+
+        oDoc.Save
+        oDoc.Close
+        vFile = Dir
+    Loop
+    MsgBox ("共用时" & Timer - t & "秒")
+End Sub
+
+Sub 页面设置()
+
+'   清除格式
+    Selection.WholeStory
+    '  Selection.ClearParagraphDirectFormatting
+    On Error Resume Next
+    Application.ScreenUpdating = False
+'
+
+With Selection.PageSetup              '页面设置
+.TopMargin = CentimetersToPoints(3.7)      '顶端边距
+.BottomMargin = CentimetersToPoints(3.5)   '底端边距
+.LeftMargin = CentimetersToPoints(2.8)     '左边距
+.RightMargin = CentimetersToPoints(2.6)    '右边距
+
+'.PageWidth = CentimetersToPoints(21)   '页面宽度
+'.PageHeight = CentimetersToPoints(29)  '页面高度
+End With
+
+ With Selection.Paragraphs '设置行距
+' .FirstLineIndent = CentimetersToPoints(0) '取消首行缩进
+.IndentFirstLineCharWidth 2 '首行缩进2个字符
+' .Alignment = wdAlignParagraphCenter '段落居中
+.Alignment = wdAlignParagraphLeft '左对齐
+ .LineSpacingRule = wdLineSpaceExactly '行距固定
+.LineSpacingRule = wdLineSpace1pt5 '行距固定1pt5
+' .LineSpacing = Word.Application.LinesToPoints(2.3)  '行距为2.3倍行距 一行距=12
+
+Selection.Range.HighlightColorIndex = wdNoHighlight '突出显示文本取消
+
+With Selection.Font  '字体设置
+        .Name = "宋体"
+        .Size = 12 '号字体
+        .ColorIndex = wdBlack '黑色
+
+End With
+End Sub
+
+Sub 页面设置2()
+
+'   首行缩进
+    
+    With Selection.ParagraphFormat
+ 
+        .LeftIndent = CentimetersToPoints(0)
+ 
+        .RightIndent = CentimetersToPoints(0)
+ 
+        .SpaceBefore = 0
+ 
+        .SpaceBeforeAuto = False
+ 
+        .SpaceAfter = 0
+ 
+        .SpaceAfterAuto = False
+ 
+        .LineSpacingRule = wdLineSpaceSingle
+ 
+        .Alignment = wdAlignParagraphJustify
+ 
+        .WidowControl = False
+ 
+        .KeepWithNext = False
+ 
+        .KeepTogether = False
+ 
+        .PageBreakBefore = False
+ 
+        .NoLineNumber = False
+ 
+        .Hyphenation = True
+ 
+        .FirstLineIndent = CentimetersToPoints(0)
+ 
+        .OutlineLevel = wdOutlineLevelBodyText
+ 
+        .CharacterUnitLeftIndent = 0
+ 
+        .CharacterUnitRightIndent = 0
+ 
+        .CharacterUnitFirstLineIndent = 2
+ 
+        .LineUnitBefore = 0
+ 
+        .LineUnitAfter = 0
+ 
+        .MirrorIndents = False
+ 
+        .TextboxTightWrap = wdTightNone
+ 
+        .AutoAdjustRightIndent = True
+ 
+        .DisableLineHeightGrid = False
+ 
+        .FarEastLineBreakControl = True
+ 
+        .WordWrap = True
+ 
+        .HangingPunctuation = True
+ 
+        .HalfWidthPunctuationOnTopOfLine = False
+ 
+        .AddSpaceBetweenFarEastAndAlpha = True
+ 
+        .AddSpaceBetweenFarEastAndDigit = True
+ 
+        .BaseLineAlignment = wdBaselineAlignAuto
+ 
+    End With
+With Selection.Font  '字体设置
+        .Name = "宋体"
+        .Size = 10.5 '号字体
+        .ColorIndex = wdBlack '黑色
+   
+End Sub
+
+Sub 页面设置3()
+
+'   设置页面
+    With Selection.PageSetup
+        .LineNumbering.Active = False
+        .Orientation = wdOrientPortrait
+        .TopMargin = CentimetersToPoints(2.54)
+        .BottomMargin = CentimetersToPoints(1.4)
+        .LeftMargin = CentimetersToPoints(2.2)
+        .RightMargin = CentimetersToPoints(1.3)
+        .Gutter = CentimetersToPoints(0)
+        .HeaderDistance = CentimetersToPoints(1.3)
+        .FooterDistance = CentimetersToPoints(2)
+        .PageWidth = CentimetersToPoints(21)
+        .PageHeight = CentimetersToPoints(29.7)
+        .FirstPageTray = wdPrinterDefaultBin
+        .OtherPagesTray = wdPrinterDefaultBin
+        .SectionStart = wdSectionNewPage
+        .OddAndEvenPagesHeaderFooter = False
+        .DifferentFirstPageHeaderFooter = False
+        .VerticalAlignment = wdAlignVerticalTop
+        .SuppressEndnotes = False
+        .MirrorMargins = False
+        .TwoPagesOnOne = False
+        .BookFoldPrinting = False
+        .BookFoldRevPrinting = False
+        .BookFoldPrintingSheets = 1
+        .GutterPos = wdGutterPosLeft
+        .CharsLine = 39
+        .LinesPage = 32
+        .LayoutMode = wdLayoutModeGrid
+    End With
+
+        
+
+End Sub
+
+Sub 正文()
+With Selection.ParagraphFormat
+.CharacterUnitFirstLineIndent = 0
+Selection.Style = ActiveDocument.Styles("正文")
+Selection.Font.Size = 12
+Selection.Font.Name = "宋体"
+.CharacterUnitFirstLineIndent = 2
+End With
+End Sub
+    
+ Sub 字体()
+
+'   设置段落
+    If (ActiveDocument.Paragraphs.Count >= 1) Then
+    ActiveWindow.ActivePane.View.SeekView = wdSeekMainDocument
+    Selection.MoveLeft Unit:=wdCharacter, Count:=1
+    Selection.MoveDown Unit:=wdParagraph, Count:=1, Extend:=wdExtend
+    Selection.ParagraphFormat.Alignment = wdAlignParagraphCenter
+    Selection.Font.Name = "黑体"
+    Selection.Font.Bold = wdToggle
+    Selection.Font.Size = 22
+    Selection.MoveRight Unit:=wdCharacter, Count:=1
+    End If
+    
+    If (ActiveDocument.Paragraphs.Count >= 2) Then
+    Selection.MoveDown Unit:=wdParagraph, Count:=1, Extend:=wdExtend
+    Selection.ParagraphFormat.Alignment = wdAlignParagraphCenter
+    Selection.Font.Name = "黑体"
+    Selection.Font.Bold = wdToggle
+    Selection.Font.Size = 18
+    Selection.MoveRight Unit:=wdCharacter, Count:=1
+    End If
+    
+    If (ActiveDocument.Paragraphs.Count >= 3) Then
+    Selection.MoveDown Unit:=wdParagraph, Count:=ActiveDocument.Paragraphs.Count - 2, Extend:=wdExtend
+    Selection.Font.Name = "黑体"
+    Selection.Font.Size = 16
+    Selection.MoveRight Unit:=wdCharacter, Count:=1
+    End If
+    
+'   加空段落
+    ActiveDocument.Paragraphs(2).Range.InsertAfter Chr(13)
+
+End Sub
+
+With Selection.Font  '字体设置
+        .Name = "宋体"
+        .Size = 10.5 '号字体
+        .ColorIndex = wdBlack '黑色
+ 
+End With
+
+  
+
+End Sub
+
+Sub 页码设置()
+
+ActiveDocument.Sections(1).Footers(wdHeaderFooterPrimary).PageNumbers.Add PageNumberAlignment:=wdAlignPageNumberCenter, FirstPage:=True
+
+With ActiveDocument.Sections(1).Footers(wdHeaderFooterPrimary) '进入页脚编辑状态
+.Range.Font.Size = 12
+.Range.Font.Name = "仿宋"
+.Range.Collapse Direction:=wdCollapseEnd
+End With
+
+End Sub
+
+
+
+Sub 多级列表编号变成黑块()
+
+For Each templ In ActiveDocument.ListTemplates
+
+For Each lev In templ.ListLevels
+
+lev.Font.Reset
+
+Next lev
+
+Next templ
+End Sub
+'-------------------------------------------------------------------------------------
+
+
+
+
+
+Sub 用时()
+Dim t
+    t = Timer
+ MsgBox " " & Round(Timer - t, 2) & " 秒！", vbOKOnly + vbExclamation, "计算宏运行所用时间"
+End Sub
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ Sub 清除空行，空格()
+'   清除空行，空格
+    
+    Dim i As Paragraph, n As Long
+    Application.ScreenUpdating = False
+    For Each i In ActiveDocument.Paragraphs
+    If Len(i.Range) = 1 Then
+    i.Range.Delete
+    n = n + 1
+    End If
+    Selection.Find.ClearFormatting
+    Selection.Find.Replacement.ClearFormatting
+    With Selection.Find
+    .Text = "　"
+    .Replacement.Text = ""
+    .Wrap = wdFindContinue
+    End With
+    With Selection.Find
+    .Text = "vbTab"
+    .Replacement.Text = ""
+    .Wrap = wdFindContinue
+    End With
+    With Selection.Find
+    .Text = " "
+    .Replacement.Text = ""
+    .Wrap = wdFindContinue
+    End With
+    With Selection.Find
+        .Text = "^t"
+        .Replacement.Text = ""
+        .Forward = True
+        .Wrap = wdFindContinue
+        .Format = False
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchByte = True
+        .MatchWildcards = False
+        .MatchSoundsLike = False
+        .MatchAllWordForms = False
+    End With
+    Selection.Find.Execute Replace:=wdReplaceAll
+    Next
+    Application.ScreenUpdating = True
+    Options.AutoFormatAsYouTypeDeleteAutoSpaces = True
+    Selection.Find.ClearFormatting
+    Selection.Find.Replacement.ClearFormatting
+    With Selection.Find
+        .Text = " "
+        .Replacement.Text = ""
+        .Forward = True
+        .Wrap = wdFindContinue
+        .Format = False
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchByte = True
+        .MatchWildcards = False
+        .MatchSoundsLike = False
+        .MatchAllWordForms = False
+    End With
+    Selection.Find.Execute Replace:=wdReplaceAll
+    
+    Selection.WholeStory
+    With ActiveDocument.Styles(wdStyleNormal).Font
+        If .NameFarEast = .NameAscii Then
+            .NameAscii = ""
+        End If
+        .NameFarEast = ""
+    End With
+End Sub
+
 
 
 
