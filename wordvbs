@@ -1,48 +1,400 @@
-Sub Main()
-' 定义变量
-Dim i As Long, j As Long, k As Long, M As Long, n As Long, intLevel As Integer
-Dim intPrevLevel As Integer, intSectionNum As Integer
-Dim objRange As Range, objPara As Paragraph, objStyle As Style, objTOC As TableOfContents
-Dim objTable As Table, objFSO As Object, objFolder As Object, objFile As Object
-Dim strFolderPath As String, strMacroFile As String, strStyleFile As String
-Dim strStyleName As String, strReg As String, strReplace As String, strTOCStyle As String
-Dim strCellStyle As String, strLangName As String
-Dim arrStyles() As Variant, arrFormats() As Variant, arrTOCStyles() As Variant, arrCellFormats() As Variant
-Dim vDirectory As String, vFile As String
 
-' 指定所需处理文件夹路径
-strFolderPath = "D:\SampleFolder\"
-
-' 获取word对象
-On Error Resume Next
-Set objWord = GetObject(, "Word.Application")
-If Err.Number <> 0 Then
-    Set objWord = CreateObject("Word.Application")
-End If
-objWord.Visible = True
-On Error GoTo 0
-
-' 循环处理文件夹内的 doc、docx 文件
-Set objFSO = CreateObject("Scripting.FileSystemObject")
-Set objFolder = objFSO.GetFolder(strFolderPath)
-For Each objFile In objFolder.Files
-    If Right(objFile.Name, 4) = "docx" Or Right(objFile.Name, 3) = "doc" Then
-        ' 打开文档
-        Set objDoc = objWord.Documents.Open(FileName:=objFile.Path)
-
-        ' 调用处理函数
-        Call ProcessDocument(objDoc)
-
-        ' 保存并关闭文档
-        objDoc.Save
-        objDoc.Close SaveChanges:=True
-    End If
-Next objFile
-
-' 退出word
-objWord.Quit
-Set objWord = Nothing
+'对Word文档执行标准化操作
+Sub StandardizeDoc(strDocPath)
+    Dim objDoc
+    Set objDoc = objWord.Documents.Open(strDocPath)
+    
+    '设置文档页面布局、标题和多级列表
+    SetPageLayout objDoc
+    SetTitleAndLists objDoc
+    
+    '设置字体样式属性
+    SetFontStyle objDoc
+    
+    '设置图片
+    SetPictures objDoc
+    
+    '设置表格
+    SetTables objDoc
+    
+    '保存并关闭文档
+    objDoc.Save
+    objDoc.Close False
 End Sub
+
+'设置文档页面布局、标题和多级列表
+Sub SetPageLayout(objDoc)
+    objDoc.PageSetup.TopMargin = objWord.CentimetersToPoints(2)
+    objDoc.PageSetup.BottomMargin = objWord.CentimetersToPoints(2)
+    objDoc.PageSetup.LeftMargin = objWord.CentimetersToPoints(2)
+    objDoc.PageSetup.RightMargin = objWord.CentimetersToPoints(2)
+    objDoc.PageSetup.HeaderDistance = objWord.CentimetersToPoints(1.27)
+    objDoc.PageSetup.FooterDistance = objWord.CentimetersToPoints(1.27)
+    objDoc.Paragraphs(1).Range.Style = objWord.ActiveDocument.Styles("标题 1")
+    objDoc.Styles("标题 1").Font.Size = 16
+    objDoc.Styles("标题 2").Font.Size = 14
+    objDoc.Styles("标题 3").Font.Size = 12
+    objDoc.ListGalleries(1).ListTemplates(1).Name = "标准多级列表"
+End Sub
+
+'设置字体样式属性
+Sub SetFontStyle(objDoc)
+    objDoc.Styles("正文").Font.Name = "宋体"
+    objDoc.Styles("正文").Font.Size = 12
+    objDoc.Styles("正文").ParagraphFormat.LineSpacingRule = objWord.WdLineSpacing.wdLineSpaceMultiple
+    objDoc.Styles("正文").ParagraphFormat.lineSpacing = 1.5
+    objDoc.Styles("正文").ParagraphFormat.SpaceBefore = objWord.CentimetersToPoints(0.5)
+    objDoc.Styles("正文").ParagraphFormat.SpaceAfter = objWord.CentimetersToPoints(0.5)
+    objDoc.Styles("正文").ParagraphFormat.FirstLineIndent = objWord.CentimetersToPoints(0.74)
+    objDoc.Styles("正文").ParagraphFormat.Alignment = objWord.WdParagraphAlignment.wdAlignParagraphJustify
+    objDoc.Styles("正文").NoSpaceBetweenParagraphsOfSameStyle = False
+    objDoc.Styles("正文").ParagraphFormat.WidowControl = True
+End Sub
+
+'设置图片
+Sub SetPictures(objDoc)
+    Dim objShapes, objShape
+    Set objShapes = objDoc.Shapes
+    For Each objShape In objShapes
+        If objShape.Type = 3 Then
+            objShape.LockAspectRatio = True
+            objShape.Height = objWord.CentimetersToPoints(6)
+            objShape.WrapFormat.Type = objWord.WdWrapType.wdWrapSquare
+            objShape.WrapFormat.Side = objWord.WdWrapSideType.wdWrapBoth
+        End If
+    Next
+End Sub
+
+
+'设置表格
+Sub SetTables(objDoc)
+    Dim objTables, objTable, objCell
+    Set objTables = objDoc.Tables
+    For Each objTable In objTables
+        objTable.LeftPadding = objWord.CentimetersToPoints(0.1)
+        objTable.RightPadding = objWord.CentimetersToPoints(0.1)
+        objTable.TopPadding = objWord.CentimetersToPoints(0.1)
+        objTable.BottomPadding = objWord.CentimetersToPoints(0.1)
+        objTable.Spacing = 0
+        objTable.AllowAutoFit = True
+        For Each objCell In objTable.Range.Cells
+            objCell.VerticalAlignment = objWord.WdCellVerticalAlignment.wdCellAlignVerticalCenter
+            objCell.Range.ParagraphFormat.Alignment = objWord.WdParagraphAlignment.wdAlignParagraphCenter
+            objCell.Range.Font.Name = "宋体"
+            objCell.Range.Font.Size = 10
+        Next
+    Next
+End Sub
+
+'设置文档标题和多级列表
+Sub SetTitleAndLists(objDoc)
+    '设置文档标题
+    objDoc.Paragraphs(1).Range.Text = "文档标题"
+    
+    '设置一级列表
+    objDoc.ListGalleries(1).ListTemplates(1).ListLevels(1).NumberFormat = "%1、"
+    objDoc.ListGalleries(1).ListTemplates(1).ListLevels(1).NumberStyle = objWord.WdListNumberStyle.wdListNumberStyleArabic
+    objDoc.ListGalleries(1).ListTemplates(1).ListLevels(1).NumberPosition = objWord.CentimetersToPoints(0.74)
+    objDoc.ListGalleries(1).ListTemplates(1).ListLevels(1).TextPosition = objWord.CentimetersToPoints(1.27)
+    
+    '设置二级列表
+    objDoc.ListGalleries(1).ListTemplates(1).ListLevels(2).NumberFormat = "%1.%2、"
+    objDoc.ListGalleries(1).ListTemplates(1).ListLevels(2).NumberStyle = objWord.WdListNumberStyle.wdListNumberStyleArabic
+    objDoc.ListGalleries(1).ListTemplates(1).ListLevels(2).NumberPosition = objWord.CentimetersToPoints(1.48)
+    objDoc.ListGalleries(1).ListTemplates(1).ListLevels(2).TextPosition = objWord.CentimetersToPoints(2.22)
+    
+    '设置三级列表
+    objDoc.ListGalleries(1).ListTemplates(1).ListLevels(3).NumberFormat = "%1.%2.%3、"
+    objDoc.ListGalleries(1).ListTemplates(1).ListLevels(3).NumberStyle = objWord.WdListNumberStyle.wdListNumberStyleArabic
+    objDoc.ListGalleries(1).ListTemplates(1).ListLevels(3).NumberPosition = objWord.CentimetersToPoints(2.22)
+    objDoc.ListGalleries(1).ListTemplates(1).ListLevels(3).TextPosition = objWord.CentimetersToPoints(2.96)
+End Sub
+
+Sub 文件夹格式()
+  '进行格式设置。当运行此宏时，会弹出一个文件夹对话框，让用户选择待处理文件所在的文件夹。然后，此宏会遍历文件夹中的所有 Word 文档，针对每个文档执行以下操作：
+  '设置文档页面，将页面方向设置为纵向、大小设置为 A4 纸张大小、边距设置为 2.5 厘米、页眉距离设置为 1 厘米、页脚距离设置为 0.5 厘米。  '对文档中的所有段落统一设置格式，包括行间距、段前段后间距、字体、字号等。
+  '针对不同级别的标题，分别设置其字号和加粗。  '对文档中所有表格设置样式，包括自动调整列宽、表格外边框线样式、居中对齐等。  '对图片标题设置样式，包括设置为加粗、设置字号为 10.5 号。  '在执行上述操作时，代码还采用了一些 VBA 内置函数，如 CentimetersToPoints、LinesToPoints 等，用于将长度单位转换为磅数，并且使用了 VBScript.RegExp 类来匹配图片标题的样式
+  
+    
+    Dim vDirectory As String
+    Dim theParagraph As Paragraph, theStr$
+    Dim reg As Object
+    Dim wrs As Characters
+
+    Dim oDoc As Document
+    With Application.FileDialog(msoFileDialogFolderPicker)
+        .Title = "选择待处理文件所在的文件夹"
+        .InitialFileName = "c:\"
+        If .Show Then
+            vDirectory = .SelectedItems(1) & "\"
+        Else
+            Exit Sub
+        End If
+    End With
+    vFile = Dir(vDirectory & "*.*", vbNormal)
+    Dim par As Paragraph
+    Dim tabl As Table
+    Do While vFile <> ""
+        Application.ScreenUpdating = False
+        Set oDoc = Documents.Open(FileName:=vDirectory & vFile)
+        '设置文档页面
+        Const PAGE_WIDTH As Single = 21 ' 定义页面宽度
+Const PAGE_HEIGHT As Single = 29.7 ' 定义页面高度
+Const TOP_MARGIN As Single = 2.5 ' 定义上边距
+Const BOTTOM_MARGIN As Single = 2.5 ' 定义下边距
+Const LEFT_MARGIN As Single = 2.5 ' 定义左边距
+Const RIGHT_MARGIN As Single = 2.5 ' 定义右边距
+Const HEADER_DISTANCE As Single = 1 ' 定义页眉与页面的距离
+Const FOOTER_DISTANCE As Single = 0.5 ' 定义页脚与页面的距离
+
+With oDoc.PageSetup
+    .Orientation = wdOrientPortrait
+    .pageWidth = CentimetersToPoints(PAGE_WIDTH)
+    .pageHeight = CentimetersToPoints(PAGE_HEIGHT)
+    .TopMargin = CentimetersToPoints(TOP_MARGIN)
+    .BottomMargin = CentimetersToPoints(BOTTOM_MARGIN)
+    .LeftMargin = CentimetersToPoints(LEFT_MARGIN)
+    .RightMargin = CentimetersToPoints(RIGHT_MARGIN)
+    .HeaderDistance = CentimetersToPoints(HEADER_DISTANCE)
+    .FooterDistance = CentimetersToPoints(FOOTER_DISTANCE)
+End With
+     
+    With oDoc.Content
+    '逐个处理每个段落
+    For Each par In .Paragraphs
+        Select Case par.OutlineLevel
+            Case wdOutlineLevel1 To wdOutlineLevel3
+                par.Range.Font.Bold = True
+                par.Range.Font.Size = 16 - par.OutlineLevel + 1 '根据大纲级别设置字号
+                par.Range.Font.Name = "黑体"
+            Case wdOutlineLevel4 To wdOutlineLevel9
+                par.Range.Font.Bold = True
+                par.Range.Font.Size = 14
+                par.Range.Font.Name = "仿宋"
+            Case Else '其余段落为正文段落
+                With par.Range.ParagraphFormat
+                    .LineSpacingRule = wdLineSpaceMultiple '统一设置为多倍行距
+                    .lineSpacing = LinesToPoints(1.2)
+                    .SpaceBeforeAuto = False
+                    .SpaceBefore = LinesToPoints(0.5) '设置段前间距为0.5行
+                    .SpaceAfter = LinesToPoints(0.5) '设置段后间距为0.5行
+                End With
+                With par.Range.Font
+                    .Name = "宋体"
+                    .Size = 14
+                    .Bold = False
+                End With
+        End Select
+    Next
+End With
+
+      
+Dim t As Table, c As Cell, a&, e&, i As Paragraph, j&, k&, x&, y&, z&, u&, v&, s&
+
+    If Selection.Information(12) Then a = 1
+    For Each t In ActiveDocument.Tables
+        If a = 1 Then Set t = Selection.Tables(1)
+        With t
+            '取消环绕
+            With .Rows
+                .WrapAroundText = False
+                .Alignment = wdAlignRowLeft
+                .LeftIndent = CentimetersToPoints(0)
+            End With
+
+            '判断表格是否规则(e=1=规则/e=0=不规则)
+            With .Range
+                With .Find
+                    .Execute "^13", , , , , , , , , "^p", 2
+                    .Execute "^11", , , , , , , , , "^p", 2
+                End With
+                x = .Information(wdEndOfRangeRowNumber)
+                y = .Information(wdEndOfRangeColumnNumber)
+                z = .Cells.Count
+            End With
+            If x <> 1 Then
+                If z = x * y Then
+                    For k = 1 To y
+                        For j = 1 To x - 1
+                            If .Cell(j + 1, k).Width = .Cell(j, k).Width Then e = 1 Else e = 0
+                            If e = 0 Then Exit For
+                        Next j
+                        If e = 0 Then Exit For
+                    Next k
+                Else
+                    e = 0
+                End If
+            Else
+                e = 1
+            End If
+
+            '清除空格
+            If Asc(.Range.Next) <> 13 Then .Range.Next.InsertBefore Text:=vbCr
+            .Select
+            Selection.MoveEnd
+            CommandBars.FindControl(ID:=122).Execute
+            Selection.Characters.Last.ParagraphFormat.Alignment = wdAlignParagraphJustify
+            .Select
+
+            '清除格式
+            Selection.ClearFormatting
+            With .Range
+                With .Font
+                    .NameAscii = "Times New Roman"
+                    .Size = 12
+                    .Kerning = 0
+                    .DisableCharacterSpaceGrid = True
+                End With
+                With .ParagraphFormat
+                    .Space1
+                    .Alignment = wdAlignParagraphCenter
+                    .AutoAdjustRightIndent = False
+                    .DisableLineHeightGrid = True
+                End With
+                .Cells.VerticalAlignment = wdCellAlignVerticalCenter
+            End With
+
+            .LeftPadding = CentimetersToPoints(0.19)
+            .RightPadding = CentimetersToPoints(0.19)
+
+            .AutoFitBehavior (wdAutoFitContent)
+            .Select
+            .AutoFitBehavior (wdAutoFitWindow)
+
+            '行高最小值
+            With .Rows
+                .HeightRule = wdRowHeightAtLeast
+                .Height = CentimetersToPoints(0.9)
+            End With
+
+            '表头加粗
+            If e = 1 Then
+                If .Rows.Count >= 2 And .Columns.Count >= 2 Then
+                    If Len(.Cell(2, 2).Range) > 2 Then
+                        With .Rows(1).Range.Font
+                            .NameFarEast = "黑体"
+                            .Bold = True
+                        End With
+                    End If
+                End If
+            Else
+                v = .Columns.Count
+                For u = 1 To v
+                    If .Range.Cells(u).Range.Information(wdEndOfRangeRowNumber) = .Range.Cells(u + 1).Range.Information(wdEndOfRangeRowNumber) Then
+                        s = 1
+                    Else
+                        s = 0
+                        Exit For
+                    End If
+                    If u + 1 = v Then Exit For
+                Next u
+                If s = 1 Then
+                    For u = 1 To v
+                        With .Cell(1, u).Range.Font
+                            .NameFarEast = "黑体"
+                            .NameAscii = "Times New Roman"
+                            .Bold = True
+                        End With
+                    Next u
+                End If
+            End If
+
+            '删除单元格空段
+            For Each c In .Range.Cells
+                For Each i In c.Range.Paragraphs
+                    If Asc(i.Range) = 13 And Len(i.Range) = 1 Then i.Range.Delete
+                Next
+                With c.Range.Paragraphs
+                    If .Count > 1 And Len(.Last.Range) = 2 Then .Last.Previous.Range.Characters.Last.Delete
+                End With
+            Next
+        End With
+        If a = 1 Then Exit For
+    Next
+   For Each t In ActiveDocument.Tables
+        t.Range.Next.InsertParagraphBefore
+    Next
+     
+    For Each i In ActiveDocument.Paragraphs
+        If i.Range Like "*" & Chr(12) Then i.Range.Characters.Last.Delete
+    Next
+       
+      '设置图片标题样式
+    Set reg = CreateObject("VBScript.RegExp")
+        With reg
+            .Pattern = "^图\d+\s+"
+            For Each theParagraph In oDoc.Paragraphs
+                theStr = theParagraph.Range
+                If .test(theStr) Then
+                    theParagraph.Range.Font.Bold = True
+                     theParagraph.Range.Font.Size = 10.5
+                End If
+            Next
+        End With
+        Set reg = Nothing
+
+
+        oDoc.Save
+        oDoc.Close
+        vFile = Dir
+    Loop
+  
+End Sub
+
+Sub AdjustPictures()
+
+' 这段代码的主要功能是自动调整Word文档中所有的图片，使其符合页面大小，并且能够水平垂直居中。
+
+' 首先，使用For Each循环遍历所有InlineShape类型图片和所有Shape类型图片。针对每个图片，判断其是否是InlineShape类型。如果是，则继续判断它的高度和宽度比例，并进行缩放和居中处理；如果不是，则转换为InlineShape类型后再进行处理。
+
+' 接着，将每个图片的宽和高设为页面大小的70%。这里使用ActiveDocument.PageSetup.PageWidth和ActiveDocument.PageSetup.PageHeight来获取文档页面的宽度和高度，并将其乘以0.7得到图片的目标宽度和高度。
+
+' 最后，将该图片水平和垂直居中对齐。利用Range.ParagraphFormat对象中的Alignment属性设置水平居中，LineSpacingRule属性设置行距为多倍行距，LineSpacing属性将该图片的段落行距设为图片高度，使其在垂直方向上居中对齐。
+
+' 遍历所有图片
+Dim pic As Object
+For Each pic In ActiveDocument.Shapes
+    ' 将所有Shape类型图片转换为InlineShape类型
+    If pic.Type = msoLinkedPicture Or pic.Type = msoPicture Then
+        pic.ConvertToInlineShape
+    End If
+Next pic
+
+' 遍历所有InlineShape类型图片
+Dim img As InlineShape
+For Each img In ActiveDocument.InlineShapes
+    With img
+        ' 如果该图片比较胖，则旋转90度
+        If .Width > .Height Then
+            .Range.Select
+            Selection.ShapeRange.IncrementRotation 90
+        End If
+        
+        ' 将图片的宽和高设为页面大小的70%取实际图像尺寸 (像素)
+        Dim imageWidth As Double
+        Dim imageHeight As Double
+        Dim targetWidth As Double
+        Dim targetHeight As Double
+        
+        imageWidth = img.Width
+        imageHeight = img.Height
+        
+        targetWidth = ActiveDocument.PageSetup.pageWidth
+        targetHeight = imageHeight * (targetWidth / imageWidth) * 0.7
+        
+        .Width = targetWidth
+        .Height = targetHeight
+        
+        ' 水平垂直居中
+        .Range.ParagraphFormat.Alignment = wdAlignParagraphCenter ' 水平居中
+        .Range.ParagraphFormat.LineSpacingRule = wdLineSpaceMultiple ' 行距设为多倍行距
+        .Range.ParagraphFormat.lineSpacing = .Height ' 段落行距设为图片高度，使其在垂直方向上居中对齐
+    End With
+Next img
+End Sub
+
+
+
 
 ' 处理单个文档的函数
 Sub ProcessDocument(objDoc As Document)
@@ -71,7 +423,7 @@ With objDoc.Styles(wdStyleNormal)
 .Font.Color = clrText
 .NoSpaceBetweenParagraphsOfSameStyle = True
 .ParagraphFormat.LineSpacingRule = wdLineSpaceMultiple
-.ParagraphFormat.LineSpacing = 1.5
+.ParagraphFormat.lineSpacing = 1.5
 .ParagraphFormat.SpaceBefore = 0
 .ParagraphFormat.SpaceAfter = 0
 .ParagraphFormat.Alignment = wdAlignParagraphLeft
@@ -95,8 +447,8 @@ End If
 .MirrorMargins = False
 .HeaderDistance = IIf(blnHeader, CentimetersToPoints(1.25), 0)
 .FooterDistance = IIf(blnFooter, CentimetersToPoints(1.25), 0)
-.PageWidth = CentimetersToPoints(21)
-.PageHeight = CentimetersToPoints(29.7)
+.pageWidth = CentimetersToPoints(21)
+.pageHeight = CentimetersToPoints(29.7)
 .FirstPageTray = wdPrinterDefaultBin
 .OtherPagesTray = wdPrinterDefaultBin
 If blnPageNumber Then
@@ -138,7 +490,7 @@ With objTOC.Range.Font
 End With
 With objTOC.Range.ParagraphFormat
 .LineSpacingRule = wdLineSpaceSingle
-.LineSpacing = 1.5
+.lineSpacing = 1.5
 .Alignment = wdAlignParagraphCenter
 End With
 objTOC.Range.Shading.BackgroundPatternColor = clrBackground
@@ -156,7 +508,7 @@ With .Range.Font
 End With
 With .Range.ParagraphFormat
 .LineSpacingRule = wdLineSpaceSingle
-.LineSpacing = 1.5
+.lineSpacing = 1.5
 .Alignment = wdAlignParagraphCenter
 End With
 .Range.Shading.BackgroundPatternColor = clrBackground
@@ -192,7 +544,7 @@ Sub SetParagraphStyle(objDoc As Document, strFontName As String, intFontSize As 
 Dim objParagraph As Paragraph
 Dim regEx As New RegExp
 
-end sub
+End Sub
 
 
 Sub FormatDocument()
@@ -234,149 +586,10 @@ Sub FormatDocument()
 End Sub
 
 
-'执行代码
-Sub RunAll()
-    FormatDocument
-    AutoNumber
-End Sub
 
-Sub 文件夹格式()
-    '进行格式设置。当运行此宏时，会弹出一个文件夹对话框，让用户选择待处理文件所在的文件夹。然后，此宏会遍历文件夹中的所有 Word 文档，针对每个文档执行以下操作：
-    '设置文档页面，将页面方向设置为纵向、大小设置为 A4 纸张大小、边距设置为 2.5 厘米、页眉距离设置为 1 厘米、页脚距离设置为 0.5 厘米。
-    '对文档中的所有段落统一设置格式，包括行间距、段前段后间距、字体、字号等。
-    '针对不同级别的标题，分别设置其字号和加粗。
-    '对文档中所有表格设置样式，包括自动调整列宽、表格外边框线样式、居中对齐等。
-    '对图片标题设置样式，包括设置为加粗、设置字号为 10.5 号。
-    '在执行上述操作时，代码还采用了一些 VBA 内置函数，如 CentimetersToPoints、LinesToPoints 等，用于将长度单位转换为磅数，并且使用了 VBScript.RegExp 类来匹配图片标题的样式
 
-    Dim vDirectory As String
-    Dim theParagraph As Paragraph, theStr$
-    Dim reg As Object
-    Dim wrs As Characters
 
-    Dim oDoc As Document
-    With Application.FileDialog(msoFileDialogFolderPicker)
-        .Title = "选择待处理文件所在的文件夹"
-        .InitialFileName = "c:\"
-        If .Show Then
-            vDirectory = .SelectedItems(1) & "\"
-        Else
-            Exit Sub
-        End If
-    End With
-    vFile = Dir(vDirectory & "*.*", vbNormal)
-    Dim par As Paragraph
-    Dim tabl As Table
-    Do While vFile <> ""
-        Application.ScreenUpdating = False
-        Set oDoc = Documents.Open(FileName:=vDirectory & vFile)
-
-        '设置文档页面
-        Const PAGE_WIDTH As Single = 21 ' 定义页面宽度
-        Const PAGE_HEIGHT As Single = 29.7 ' 定义页面高度
-        Const TOP_MARGIN As Single = 2.5 ' 定义上边距
-        Const BOTTOM_MARGIN As Single = 2.5 ' 定义下边距
-        Const LEFT_MARGIN As Single = 2.5 ' 定义左边距
-        Const RIGHT_MARGIN As Single = 2.5 ' 定义右边距
-        Const HEADER_DISTANCE As Single = 1 ' 定义页眉与页面的距离
-        Const FOOTER_DISTANCE As Single = 0.5 ' 定义页脚与页面的距离
-
-        With oDoc.PageSetup
-            .Orientation = wdOrientPortrait
-            .PageWidth = CentimetersToPoints(PAGE_WIDTH)
-            .PageHeight = CentimetersToPoints(PAGE_HEIGHT)
-            .TopMargin = CentimetersToPoints(TOP_MARGIN)
-            .BottomMargin = CentimetersToPoints(BOTTOM_MARGIN)
-            .LeftMargin = CentimetersToPoints(LEFT_MARGIN)
-            .RightMargin = CentimetersToPoints(RIGHT_MARGIN)
-            .HeaderDistance = CentimetersToPoints(HEADER_DISTANCE)
-            .FooterDistance = CentimetersToPoints(FOOTER_DISTANCE)
-        End With
-
-        '设置段落样式
-        With oDoc.Content
-            For Each par In .Paragraphs
-                Select Case par.OutlineLevel
-                    Case wdOutlineLevel1 To wdOutlineLevel3
-                        par.Range.Font.Bold = True
-                        par.Range.Font.Size = 16 - par.OutlineLevel + 1 '根据大纲级别设置字号
-                        par.Range.Font.Name = "黑体"
-                    Case wdOutlineLevel4 To wdOutlineLevel9
-                        par.Range.Font.Bold = True
-                        par.Range.Font.Size = 14
-                        par.Range.Font.Name = "仿宋"
-                    Case Else '其余段落为正文段落
-                        With par.Range.ParagraphFormat
-                            .LineSpacingRule = wdLineSpaceMultiple '统一设置为多倍行距
-                            .LineSpacing = LinesToPoints(1.2)
-                            .SpaceBeforeAuto = False
-                            .SpaceBefore = LinesToPoints(0.5) '设置段前间距为0.5行
-                            .SpaceAfter = LinesToPoints(0.5) '设置段后间距为0.5行
-                        End With
-                        With par.Range.Font
-                            .Name = "宋体"
-                            .Size = 14
-                            .Bold = False
-                        End With
-                End Select
-            Next
-        End With
-
-        '设置表格样式
-        For Each tabl In oDoc.Tables
-            With tabl
-                '判断表格结构是否规则
-                Dim isRegular As Boolean
-                isRegular = True
-                If .Rows.Count > 1 And .Columns.Count > 1 Then
-                    Dim i, j As Integer
-                    For i = 1 To .Rows.Count - 1
-                        For j = 1 To .Columns.Count - 1
-                            If .Cell(i, j).Width <> .Cell(i + 1, j).Width Or .Cell(i, j).Height <> .Cell(i, j + 1).Height Then
-                                isRegular = False
-                                Exit For
-                            End If
-                        Next
-                        If Not isRegular Then
-                            Exit For
-                        End If
-                    Next
-                End If
-
-                '设置表格样式
-                With .Range
-                    .Table.AutoFitBehavior (wdAutoFitWindow)
-                    .Shading.BackgroundPatternColorIndex = wdWhite
-                    .Borders.OutsideLineStyle = wdLineStyleSingle
-                    .Borders.InsideLineStyle = wdLineStyleSingle
-                    .Alignment = wdAlignParagraphCenter
-                End With
-            End With
-        Next
-
-        '设置图片标题样式
-        Set reg = CreateObject("VBScript.RegExp")
-        reg.Pattern = "^图\s*\d+[\.\s、]"
-        For Each theParagraph In oDoc.Paragraphs
-            theStr = theParagraph.Range.Text
-            Set wrs = theParagraph.Range.Characters
-            If reg.Test(theStr) Then '匹配成功，将其字体加粗，字号设置为10.5
-                With wrs
-                    .Font.Bold = True
-                    .Font.Size = 10.5
-                End With
-            End If
-        Next
-
-        '保存并关闭文档
-        oDoc.Save
-        oDoc.Close
-        vFile = Dir
-    Loop
-    Application.ScreenUpdating = True
-    MsgBox "格式设置完毕！", vbInformation
-End Sub
-Sub 文件夹格式()
+Sub 文件夹()
 
 '让用户选择待处理的文件夹
 Dim vDirectory As String
@@ -406,8 +619,8 @@ Do While vFile <> ""
     Set oDoc = Documents.Open(FileName:=vDirectory & vFile)
     With oDoc.PageSetup
         .Orientation = wdOrientPortrait
-        .PageWidth = CentimetersToPoints(PAGE_WIDTH)
-        .PageHeight = CentimetersToPoints(PAGE_HEIGHT)
+        .pageWidth = CentimetersToPoints(PAGE_WIDTH)
+        .pageHeight = CentimetersToPoints(PAGE_HEIGHT)
         .TopMargin = CentimetersToPoints(TOP_MARGIN)
         .BottomMargin = CentimetersToPoints(BOTTOM_MARGIN)
         .LeftMargin = CentimetersToPoints(LEFT_MARGIN)
@@ -436,7 +649,7 @@ Do While vFile <> ""
         .Font.Name = "宋体"
         .Font.Size = 12
         .ParagraphFormat.LineSpacingRule = wdLineSpaceMultiple '统一设置为多倍行距
-        .ParagraphFormat.LineSpacing = LinesToPoints(1.2)
+        .ParagraphFormat.lineSpacing = LinesToPoints(1.2)
         .ParagraphFormat.SpaceBeforeAuto = False
         .ParagraphFormat.SpaceBefore = LinesToPoints(0.5) '设置段前间距为0.5行
         .ParagraphFormat.SpaceAfter = LinesToPoints(0.5) '设置段后间距为0.5行
@@ -505,3 +718,4 @@ Do While vFile <> ""
     vFile = Dir
 Loop
 End Sub
+
