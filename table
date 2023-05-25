@@ -1,6 +1,4 @@
-    
-
-Sub 格()
+Sub 表格循环()
 
 Application.Browser.Target = wdBrowseTable
 Dim tbl As Table
@@ -76,7 +74,7 @@ Sub AdjustTables()
     Next tbl
 End Sub
 
-Sub 表格处理()
+Sub 表格处理单一()
     Dim t As Table, c As Cell, a&, e&, i As Paragraph, j&, k&, x&, y&, z&, u&, v&, s&
 
     If Selection.Information(12) Then a = 1
@@ -205,35 +203,7 @@ End Sub
 
 
 
-Sub 表格缩行()
-    Dim t As Table, c As Cell, a&
-    With Selection
-        If .Information(12) Then a = 1
-        For Each t In ActiveDocument.Tables
-            If a = 1 Then Set t = .Tables(1)
-            With t.Range.Find
-                .Execute "^p", , , , , , , , , "", 2
-                .Execute "^l", , , , , , , , , "", 2
-                .Execute "^w", , , , , , , , , "", 2
-                .Execute "　", , , , , , , , , "", 2
-            End With
-            For Each c In t.Range.Cells
-                c.Range.Select
-                .MoveEnd Unit:=wdCharacter, Count:=-1
-                With .Font
-                    If .Spacing = "9999999" Then .Spacing = 0
-                    If .Scaling = "9999999" Then .Scaling = 100
-                    If .Parent.Range.ComputeStatistics(statistic:=wdStatisticLines) > 1 Then .Spacing = -0.5
-                    Do Until .Parent.Range.ComputeStatistics(statistic:=wdStatisticLines) = 1
-                        If .Parent.Range.ComputeStatistics(statistic:=wdStatisticLines) = 0 Then Exit Do
-                        .Scaling = .Scaling - 2
-                    Loop
-                End With
-            Next
-            If a = 1 Then Exit For
-        Next
-        .HomeKey 6
-    End 
+
 Sub 外框加粗()
     Dim t As Table, i&, j&
     If Selection.Information(12) Then i = 1
@@ -255,4 +225,5 @@ Sub 删除分节符_表格邮件合并()
         If i.Range Like "*" & Chr(12) Then i.Range.Characters.Last.Delete
     Next
 End Sub
+
 
