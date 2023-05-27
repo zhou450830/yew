@@ -1,3 +1,43 @@
+Sub 外框加粗1()
+
+    Dim doc As Document
+    Dim tbl As Table
+    Dim i As Integer
+    
+    Set doc = ActiveDocument
+    If Selection.Information(wdWithInTable) Then
+        i = 1
+    End If
+    
+    For Each tbl In doc.Tables
+        If i = 1 And tbl.Range.InRange(Selection.Range) = False Then
+            ' 对选中的表格进行操作时，跳过其他表格
+            GoTo NextIteration
+        End If
+        If tbl.Borders.Count > 0 Then
+            ' 只有存在边框线的表格才进行加粗操作
+            With tbl.Borders(wdBorderLeft)
+                .LineStyle = wdLineStyleSingle
+                .LineWidth = wdLineWidth100pt
+            End With
+            With tbl.Borders(wdBorderRight)
+                .LineStyle = wdLineStyleSingle
+                .LineWidth = wdLineWidth100pt
+            End With
+            With tbl.Borders(wdBorderTop)
+                .LineStyle = wdLineStyleSingle
+                .LineWidth = wdLineWidth100pt
+            End With
+            With tbl.Borders(wdBorderBottom)
+                .LineStyle = wdLineStyleSingle
+                .LineWidth = wdLineWidth100pt
+            End With
+        End If
+NextIteration:
+        If i = 1 Then Exit For
+    Next tbl
+End Sub
+
 Sub 表格缩行()
     ' 判断当前是否有选中的内容对Word文档中的表格进行缩行处理。
 
