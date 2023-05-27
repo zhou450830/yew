@@ -1,3 +1,223 @@
+Sub 表格缩行()
+    ' 判断当前是否有选中的内容对Word文档中的表格进行缩行处理。
+
+'首先，该程序判断当前是否有选中的内容。如果有，则只对选中的表格进行操作；否则，对整个文档中的所有表格进行操作。
+
+'然后，该程序遍历了ActiveDocument中的所有表格。对于每个表格，它使用Find方法查找并替换一些特殊字符，如段落分隔符、列分隔符、空格和全角空格。
+
+'接下来，该程序遍历了表格中的每个单元格。对于每个单元格，它首先将光标移动到单元格的范围内，然后使用Font对象来控制字体的缩放和间距大小，以达到缩小行距的效果。
+
+'最后，如果之前有选中的内容，则将光标移回选中的位置，避免误操作影响其他内容。
+    Dim t As Table, c As Cell, a As Integer
+    With Selection
+        If .Information(12) Then a = 1
+        
+        ' 遍历所有表格
+        For Each t In ActiveDocument.Tables
+            ' 如果有选中的内容，则只对选中的表格进行操作
+            If a = 1 Then Set t = .Tables(1)
+            ' 使用Find方法查找并替换一些特殊字符
+            With t.Range.Find
+                .Execute "^p", , , , , , , , , "", 2
+                .Execute "^l", , , , , , , , , "", 2
+                .Execute "^w", , , , , , , , , "", 2
+                .Execute "　", , , , , , , , , "", 2
+            End With
+            ' 遍历表格中的每个单元格
+            For Each c In t.Range.Cells
+                ' 将光标移动到单元格的范围内
+                c.Range.Select
+                ' 使用Font对象来控制字体的缩放和间距大小
+                With .Font
+                    If .Spacing = "9999999" Then .Spacing = 0
+                    If .Scaling = "9999999" Then .Scaling = 100
+                    If .Parent.Range.ComputeStatistics(statistic:=wdStatisticLines) > 1 Then .Spacing = -0.5
+                    Do Until .Parent.Range.ComputeStatistics(statistic:=wdStatisticLines) = 1
+                        If .Parent.Range.ComputeStatistics(statistic:=wdStatisticLines) = 0 Then Exit Do
+                        .Scaling = .Scaling - 2
+                    Loop
+                End With
+            Next
+            ' 如果有选中的内容，则只对第一个选中的表格进行操作，避免误操作影响其他内容
+            If a = 1 Then Exit For
+        Next
+        ' 将光标移回选中的位置，避免误操作影响其他内容
+        .HomeKey 6
+    End With
+End Sub
+Sub 表理()
+ '取消表格环绕；
+ '判断表格是否规则，并删除空格；
+ '清除格式；
+ '自适应表格大小和行高；
+ '将表头加粗；
+ '删除单元格中的空段。
+    Dim t As Table, c As Cell, a&, e&, i As Paragraph, j&, k&, x&, y&, z&, u&, v&, s&
+
+    If Selection.Information(12) Then a = 1
+    For Each t In ActiveDocument.Tables
+        If a = 1 Then Set t = Selection.Tables(1)
+        With t
+            '取消环绕
+            With .Rows
+                .WrapAroundText = False
+                .Alignment = wdAlignRowLeft
+                .LeftIndent = CentimetersToPoints(0)
+            End With
+
+            '判断表格是否规则(e=1=规则/e=0=不规则)
+            With .Range
+                With .Find
+                    .Execute "^13", , , , , , , , , "^p", 2
+                    .Execute "^11", , , , , , , , , "^p", 2
+                End With
+                x = .Information(wdEndOfRangeRowNumber)
+                y = .Information(wdEndOfRangeColumnNumber)
+                z = .Cells.Count
+            End With
+            If x <> 1 Then
+                If z = x * y Then
+                    For k = 1 To y
+                        For j = 1 To x - 1
+                            If .Cell(j + 1, k).Width = .Cell(j, k).Width Then e = 1 Else e = 0
+                            If e = 0 Then Exit For
+                        Next j
+                        If e = 0 Then Exit For
+                    Next k
+                Else
+                    e = 0
+                End If
+            Else
+                e = 1
+            End If
+
+            '清除空格
+            If Asc(.Range.Next) <> 13 Then .Range.Next.InsertBefore Text:=vbCr
+            .Select
+            Selection.MoveEnd
+            CommandBars.FindControl(ID:=122).Execute
+            Selection.Characters.Last.ParagraphFormat.Alignment = wdAlignParagraphJustify
+            .Select
+
+            '清除格式
+            Selection.ClearFormatting
+            With .Range
+                With .Font
+                    .NameAscii = "Times New Roman"
+                    .Size = 12
+                    .Kerning = 0
+                    .DisableCharacterSpaceGrid = True
+                End With
+                With .ParagraphFormat
+                    .Space1
+                    .Alignment = wdAlignParagraphCenter
+                    .AutoAdjustRightIndent = False
+                    .DisableLineHeightGrid = True
+                End With
+                .Cells.VerticalAlignment = wdCellAlignVerticalCenter
+            End With
+
+            .LeftPadding = CentimetersToPoints(0.19)
+            .RightPadding = CentimetersToPoints(0.19)
+
+            .AutoFitBehavior (wdAutoFitContent)
+            .Select
+            .AutoFitBehavior (wdAutoFitWindow)
+
+            '行高最小值
+            With .Rows
+                .HeightRule = wdRowHeightAtLeast
+                .Height = CentimetersToPoints(0.9)
+            End With
+
+            '表头加粗
+            If e = 1 Then
+                If .Rows.Count >= 2 And .Columns.Count >= 2 Then
+                    If Len(.Cell(2, 2).Range) > 2 Then
+                        With .Rows(1).Range.Font
+                            .NameFarEast = "黑体"
+                            .Bold = True
+                        End With
+                    End If
+                End If
+            Else
+                v = .Columns.Count
+                For u = 1 To v
+                    If .Range.Cells(u).Range.Information(wdEndOfRangeRowNumber) = .Range.Cells(u + 1).Range.Information(wdEndOfRangeRowNumber) Then
+                        s = 1
+                    Else
+                        s = 0
+                        Exit For
+                    End If
+                    If u + 1 = v Then Exit For
+                Next u
+                If s = 1 Then
+                    For u = 1 To v
+                        With .Cell(1, u).Range.Font
+                            .NameFarEast = "黑体"
+                            .NameAscii = "Times New Roman"
+                            .Bold = True
+                        End With
+                    Next u
+                End If
+            End If
+
+            '删除单元格空段
+            For Each c In .Range.Cells
+                For Each i In c.Range.Paragraphs
+                    If Asc(i.Range) = 13 And Len(i.Range) = 1 Then i.Range.Delete
+                Next
+                With c.Range.Paragraphs
+                    If .Count > 1 And Len(.Last.Range) = 2 Then .Last.Previous.Range.Characters.Last.Delete
+                End With
+            Next
+        End With
+        If a = 1 Then Exit For
+    Next
+End Sub
+
+Sub 表格楷体小5()
+'表格设置宏会循环遍历文档中的所有表格，并对每个表格进行外边框、内边框、居中、字体和段落格式等方面的设置；
+Application.Browser.Target = wdBrowseTable
+Dim tbl As Table
+For Each tbl In ActiveDocument.Tables
+
+    With tbl
+        '表格外边框
+        .Borders.OutsideLineStyle = wdLineStyleSingle
+        '表格内边框
+        .Borders.InsideLineStyle = wdLineStyleSingle
+        '表格内边框颜色
+        .Borders(wdBorderRight).Color = wdColorAutomatic
+        .Borders(wdBorderLeft).Color = wdColorAutomatic
+        .Borders(wdBorderTop).Color = wdColorAutomatic
+        .Borders(wdBorderBottom).Color = wdColorAutomatic
+        
+        '表格居中
+        .Rows.Alignment = wdAlignRowCenter
+        
+        '表格内容居中
+        .Range.Paragraphs.Alignment = wdAlignParagraphLeft
+        
+        '设置字体
+        With .Range.Font
+            .Name = "楷体"
+            .Size = "10.5"
+            .ColorIndex = wdBlack
+            .Bold = False
+        End With
+    End With
+    
+    '设置段落格式
+    With tbl.Range.ParagraphFormat
+        .LeftIndent = CentimetersToPoints(0) '首行缩进设为 0
+        .CharacterUnitLeftIndent = 0 '首行缩进设为 0
+        .Alignment = wdAlignParagraphLeft '左对齐
+    End With
+    
+Next tbl
+End Sub
+
 Sub 表格循环()
 
 Application.Browser.Target = wdBrowseTable
