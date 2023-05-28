@@ -1,1 +1,541 @@
+Sub pagesetup页()
+' the code defines a sub called "papersetup". this sub loops through all sections in the active document and sets various properties of their pagesetup object.
+
+' if the section's orientation is portrait, then the top and bottom margins are set to 2.54cm, left and right margins to 3.17cm, and the page size is set to a4 (21x29.7cm). otherwise, if the section's orientation is landscape, then the top and bottom margins are set to 2.5cm, left and right margins to 2.54cm, and the page size is set to reverse-a4 (29.7x21cm).
+
+' in both cases, the header distance is set to 1.5cm and footer distance is set to 1.75cm.用于对Word文档中所有章节的页面设置进行统一配置。
+
+'该代码使用了For Each循环，依次对当前文档中的每一个章节进行处理。处理过程中，该代码首先获取该章节的页面设置(PageSetup)对象，然后根据页面方向(Orientation)的不同分别设置上下边距、左右边距和页面大小，以及页眉与正文之间、页脚与正文之间的距离。因此，在文档存在多种纸张、页面方向的情况下，该代码可以自动识别并完成适当的页面设置，并确保各个章节的页面设置一致。
+
+'值得注意的是，该代码中使用了CentimetersToPoints函数将厘米单位的数值转换为磅单位（即Word中的默认测量单位），以便正确地设置页面大小和距离。在使用该代码时，应先仔细检查所选的纸张、页边距和页眉页脚等设置，确保它们符合实际需要。
+
+' note: "centimeterstopoints" is a built-in function in vba that converts from centimeters to points (i.e. the unit of measurement used by word).
+    Dim s As Section
+    For Each s In ActiveDocument.Sections
+        With s.pagesetup
+            If .Orientation = wdOrientPortrait Then
+                .TopMargin = CentimetersToPoints(2.54)
+                .BottomMargin = CentimetersToPoints(2.54)
+                .LeftMargin = CentimetersToPoints(3.17)
+                .RightMargin = CentimetersToPoints(3.17)
+                .PageWidth = CentimetersToPoints(21)
+                .PageHeight = CentimetersToPoints(29.7)
+            Else
+                .TopMargin = CentimetersToPoints(2.5)
+                .BottomMargin = CentimetersToPoints(2.5)
+                .LeftMargin = CentimetersToPoints(2.54)
+                .RightMargin = CentimetersToPoints(2.54)
+                .PageWidth = CentimetersToPoints(29.7)
+                .PageHeight = CentimetersToPoints(21)
+            End If
+            .HeaderDistance = CentimetersToPoints(1.5)
+            .FooterDistance = CentimetersToPoints(1.75)
+        End With
+    Next
+End Sub
+Sub para段2()
+
+'   首行缩进
+    
+    With Selection.ParagraphFormat
+ 
+        .LeftIndent = CentimetersToPoints(0)
+ 
+        .RightIndent = CentimetersToPoints(0)
+ 
+        .SpaceBefore = 0
+ 
+        .SpaceBeforeAuto = False
+ 
+        .SpaceAfter = 0
+ 
+        .SpaceAfterAuto = False
+ 
+        .LineSpacingRule = wdLineSpaceSingle
+ 
+        .Alignment = wdAlignParagraphJustify
+ 
+        .WidowControl = False
+ 
+        .KeepWithNext = False
+ 
+        .KeepTogether = False
+ 
+        .PageBreakBefore = False
+ 
+        .NoLineNumber = False
+ 
+        .Hyphenation = True
+ 
+        .FirstLineIndent = CentimetersToPoints(0)
+ 
+        .OutlineLevel = wdOutlineLevelBodyText
+ 
+        .CharacterUnitLeftIndent = 0
+ 
+        .CharacterUnitRightIndent = 0
+ 
+        .CharacterUnitFirstLineIndent = 2
+ 
+        .LineUnitBefore = 0
+ 
+        .LineUnitAfter = 0
+ 
+        .MirrorIndents = False
+ 
+        .TextboxTightWrap = wdTightNone
+ 
+        .AutoAdjustRightIndent = True
+ 
+        .DisableLineHeightGrid = False
+ 
+        .FarEastLineBreakControl = True
+ 
+        .WordWrap = True
+ 
+        .HangingPunctuation = True
+ 
+        .HalfWidthPunctuationOnTopOfLine = False
+ 
+        .AddSpaceBetweenFarEastAndAlpha = True
+ 
+        .AddSpaceBetweenFarEastAndDigit = True
+ 
+        .BaseLineAlignment = wdBaselineAlignAuto
+ 
+    End With
+
+End Sub
+Sub Formading标题大纲Heading()
+'将Word文档中的标题样式格式化为列表。
+
+'首先，该程序将ActiveDocument变量设置为doc对象，然后使用For Each语句遍历所有的样式，并将每个样式存储在sty对象中。接下来使用Left函数检查样式名称是否以"Heading"开头。如果是，则使用ParagraphFormat属性调整样式的缩进、前后间距和大纲级别。
+
+'样式的左缩进被设置为0英寸，SpaceBefore属性设置为0点，SpaceAfter属性设置为6点以保持行距的合理间隔。OutlineLevel属性根据样式名称中的数字设置为相应的值。
+
+'最后，该程序使用Set语句清除对象变量以释放内存。
+    Dim doc As Document
+    Dim sty As Style
+    Set doc = ActiveDocument
+    
+    ' 遍历所有的样式
+    For Each sty In doc.Styles
+        ' 检查样式名称是否以"Heading"开头
+        If Left(sty.NameLocal, 7) = "Heading" Then
+            ' 将样式的缩进、前后间距和大纲级别调整为所需的值
+            With sty.ParagraphFormat
+                .LeftIndent = InchesToPoints(0)
+                .SpaceBefore = 0
+                .SpaceAfter = 0
+                .OutlineLevel = CLng(Right(sty.NameLocal, 1))
+            End With
+        End If
+    Next
+    
+    ' 手动清除对象变量以释放内存
+    Set doc = Nothing
+    Set sty = Nothing
+End Sub
+Sub Format大纲标题样式()
+    '定义变量
+    Dim oPara As Paragraph
+    Dim oRange As Range
+    Dim oStyle As Style
+    
+    '遍历文档中的每一个段落
+    For Each oPara In ActiveDocument.Paragraphs
+        '根据大纲级别设置样式
+        Select Case oPara.OutlineLevel
+            Case wdOutlineLevel1
+                Set oStyle = ActiveDocument.Styles("标题 1")
+            Case wdOutlineLevel2
+                Set oStyle = ActiveDocument.Styles("标题 2")
+            Case wdOutlineLevel3
+                Set oStyle = ActiveDocument.Styles("标题 3")
+            Case wdOutlineLevel4
+                Set oStyle = ActiveDocument.Styles("标题 4")
+            Case wdOutlineLevel5
+                Set oStyle = ActiveDocument.Styles("标题 5")
+            Case wdOutlineLevel6
+                Set oStyle = ActiveDocument.Styles("标题 6")
+            Case wdOutlineLevel7
+                Set oStyle = ActiveDocument.Styles("标题 7")
+            Case wdOutlineLevel8
+                Set oStyle = ActiveDocument.Styles("标题 8")
+            Case wdOutlineLevel9
+                Set oStyle = ActiveDocument.Styles("标题 9")
+            Case Else
+                Set oStyle = ActiveDocument.Styles("正文")
+        End Select
+        
+        '将样式应用于段落
+        Set oRange = oPara.Range
+        oRange.Style = oStyle
+    Next oPara
+End Sub
+Sub Format将Word文档中的标题样式设置为多级列()
+
+ ' 表。
+
+ ' 首先，该程序使用For Each语句遍历所有的段落，并将每个段落的样式存储在objStyle变量中。接下来，使用Select Case语句检查样式名称，如果样式匹配，则将objListTemplate变量设置为相应的多级列表模板。如果未定义样式，则将objListTemplate变量设置为空。
+
+ ' 然后，该程序检查objListTemplate变量是否已分配，如果已分配，则将objParagraph.Range.ListFormat.ApplyListTemplate方法应用于该段落的范围。该方法以多级列表模板为参数，将当前段落设置为所需的多级列表。
+
+ ' 最后，该程序手动清除对象变量以释放内存。
+    Dim objParagraph As Paragraph
+    Dim objStyle As Style
+    Dim objListTemplate As ListTemplate
+    
+    On Error Resume Next '启用错误处理
+    ' 遍历所有的段落
+    For Each objParagraph In ActiveDocument.Paragraphs
+        ' 将每个段落的样式存储在objStyle变量中
+        Set objStyle = objParagraph.Range.Style
+        
+        If Not objStyle Is Nothing Then '检查对象变量是否已分配
+            ' 检查样式名称，如果匹配，则将objListTemplate变量设置为相应的多级列表模板
+            Select Case objStyle.NameLocal
+                Case "Heading 1"
+                    Set objListTemplate = ListGalleries(wdOutlineNumberGallery).ListTemplates(1)
+                    
+                Case "Heading 2"
+                    Set objListTemplate = ListGalleries(wdOutlineNumberGallery).ListTemplates(2)
+                    
+                Case "Heading 3"
+                    Set objListTemplate = ListGalleries(wdOutlineNumberGallery).ListTemplates(3)
+                    
+                Case "Heading 4"
+                    Set objListTemplate = ListGalleries(wdOutlineNumberGallery).ListTemplates(4)
+                    
+                Case "Heading 5"
+                    Set objListTemplate = ListGalleries(wdOutlineNumberGallery).ListTemplates(5)
+                    
+                Case "Heading 6"
+                    Set objListTemplate = ListGalleries(wdOutlineNumberGallery).ListTemplates(6)
+                    
+                Case Else '未定义的样式
+                    Set objListTemplate = Nothing '设置为空
+                    
+            End Select
+            
+            If Not objListTemplate Is Nothing Then '检查对象变量是否已分配
+                ' 将当前段落设置为所需的多级列表
+                objParagraph.Range.ListFormat.ApplyListTemplate ListTemplate:=objListTemplate, _
+                    ContinuePreviousList:=False, ApplyTo:=wdListApplyToWholeList, _
+                    DefaultListBehavior:=wdWord10ListBehavior
+            End If
+            
+            Set objListTemplate = Nothing '手动清除对象变量以释放内存
+        End If
+        
+        Set objStyle = Nothing '手动清除对象变量以释放内存
+    Next objParagraph
+    
+    On Error GoTo 0 '禁用错误处理
+End Sub
+Sub call文件夹页面大纲()
+  '进行格式设置。当运行此宏时，会弹出一个文件夹对话框，让用户选择待处理文件所在的文件夹。然后，此宏会遍历文件夹中的所有 Word 文档，针对每个文档执行以下操作：
+  '设置文档页面，将页面方向设置为纵向、大小设置为 A4 纸张大小、边距设置为 2.5 厘米、页眉距离设置为 1 厘米、页脚距离设置为 0.5 厘米。  '对文档中的所有段落统一设置格式，包括行间距、段前段后间距、字体、字号等。
+  '针对不同级别的标题，分别设置其字号和加粗。  '对文档中所有表格设置样式，包括自动调整列宽、表格外边框线样式、居中对齐等。  '对图片标题设置样式，包括设置为加粗、设置字号为 10.5 号。  '在执行上述操作时，代码还采用了一些 VBA 内置函数，如 CentimetersToPoints、LinesToPoints 等，用于将长度单位转换为磅数，并且使用了 VBScript.RegExp 类来匹配图片标题的样式
+  
+    StartTime = Timer '记录开始时间
+    Dim vDirectory As String
+    Dim theParagraph As Paragraph, theStr$
+    Dim reg As Object
+    Dim wrs As Characters
+
+    Dim oDoc As Document
+    With Application.FileDialog(msoFileDialogFolderPicker)
+        .Title = "选择待处理文件所在的文件夹"
+        .InitialFileName = "c:\"
+        If .Show Then
+            vDirectory = .SelectedItems(1) & "\"
+        Else
+            Exit Sub
+        End If
+    End With
+    vFile = Dir(vDirectory & "*.*", vbNormal)
+    Dim par As Paragraph
+    Dim tabl As Table
+    Do While vFile <> ""
+        Application.ScreenUpdating = False
+        Set oDoc = Documents.Open(FileName:=vDirectory & vFile)
+
+With oDoc.pagesetup
+    .Orientation = wdOrientPortrait
+    .PageWidth = CentimetersToPoints(PAGE_WIDTH)
+    .PageHeight = CentimetersToPoints(PAGE_HEIGHT)
+    .TopMargin = CentimetersToPoints(TOP_MARGIN)
+    .BottomMargin = CentimetersToPoints(BOTTOM_MARGIN)
+    .LeftMargin = CentimetersToPoints(LEFT_MARGIN)
+    .RightMargin = CentimetersToPoints(RIGHT_MARGIN)
+    .HeaderDistance = CentimetersToPoints(HEADER_DISTANCE)
+    .FooterDistance = CentimetersToPoints(FOOTER_DISTANCE)
+End With
+     
+    With oDoc.Content
+    '逐个处理每个段落
+    For Each par In .Paragraphs
+        Select Case par.OutlineLevel
+            Case wdOutlineLevel1 To wdOutlineLevel5
+                par.Range.Font.Bold = True
+                par.Range.Font.Size = 16 - par.OutlineLevel + 1 '根据大纲级别设置字号
+                par.Range.Font.Name = "黑体"
+            Case wdOutlineLevel6 To wdOutlineLevel9
+                par.Range.Font.Bold = True
+                par.Range.Font.Size = 12
+                par.Range.Font.Name = "黑体"
+            Case Else '其余段落为正文段落
+                With par.Range.ParagraphFormat
+                    .LineSpacingRule = wdLineSpaceMultiple '统一设置为多倍行距
+                    .LineSpacing = LinesToPoints(1.5)
+                    .SpaceBeforeAuto = False
+                    .SpaceBefore = LinesToPoints(0.5) '设置段前间距为0.5行
+                    .SpaceAfter = LinesToPoints(0.5) '设置段后间距为0.5行
+                End With
+                With par.Range.Font
+                    .Name = "宋体"
+                    .Size = 12
+                    .Bold = False
+                End With
+        End Select
+    Next
+End With
+
+    
+      '设置图片标题样式
+    Set reg = CreateObject("VBScript.RegExp")
+        With reg
+            .Pattern = "^图\d+\s+"
+            For Each theParagraph In oDoc.Paragraphs
+                theStr = theParagraph.Range
+                If .test(theStr) Then
+                    theParagraph.Range.Font.Bold = True
+                     theParagraph.Range.Font.Size = 10.5
+                End If
+            Next
+        End With
+        Set reg = Nothing
+
+
+        oDoc.Save
+        oDoc.Close
+        vFile = Dir
+    Loop
+  EndTime = Timer '记录结束时间
+MsgBox "代码运行时间：" & FormatNumber(EndTime - StartTime, 2) & " 秒"
+End Sub
+
+Sub AdjustTables2楷体小5()
+'表格设置宏会循环遍历文档中的所有表格，并对每个表格进行外边框、内边框、居中、字体和段落格式等方面的设置；
+Application.Browser.Target = wdBrowseTable
+Dim tbl As Table
+For Each tbl In ActiveDocument.Tables
+
+    With tbl
+        '表格外边框
+        .Borders.OutsideLineStyle = wdLineStyleSingle
+        '表格内边框
+        .Borders.InsideLineStyle = wdLineStyleSingle
+        '表格内边框颜色
+        .Borders(wdBorderRight).Color = wdColorAutomatic
+        .Borders(wdBorderLeft).Color = wdColorAutomatic
+        .Borders(wdBorderTop).Color = wdColorAutomatic
+        .Borders(wdBorderBottom).Color = wdColorAutomatic
+        
+        '表格居中
+        .Rows.Alignment = wdAlignRowCenter
+        
+        '表格内容居中
+        .Range.Paragraphs.Alignment = wdAlignParagraphLeft
+        
+        '设置字体
+        With .Range.Font
+            .Name = "楷体"
+            .Size = "10.5"
+            .ColorIndex = wdBlack
+            .Bold = False
+        End With
+    End With
+    
+    '设置段落格式
+    With tbl.Range.ParagraphFormat
+        .LeftIndent = CentimetersToPoints(0) '首行缩进设为 0
+        .CharacterUnitLeftIndent = 0 '首行缩进设为 0
+        .Alignment = wdAlignParagraphLeft '左对齐
+    End With
+    
+Next tbl
+End Sub
+
+Sub ResizeImg1宽15cm()
+Dim sh As Shape
+    For Each sh In ActiveDocument.Shapes
+        If sh.Type = msoLinkedPicture Or sh.Type = msoPicture Then
+            sh.ConvertToInlineShape
+        End If
+    Next sh
+    ' 自动调整Word文档中的图片大小，并使其水平垂直居中对齐。ResizePictures()遍历所有InlineShape类型图片。如果该图片未锁定纵横比，则将图片宽和高分别乘以0.8缩小为原来的80%。如果该图片已锁定纵横比，则根据其宽高比例进行处理，使得其较短的一侧变为原来的80%。最后，将图片水平居中对齐。
+    Dim pic As InlineShape
+    For Each pic In ActiveDocument.InlineShapes
+        ' 如果该图片未锁定纵横比，则将图片宽高分别缩小为原来的80%
+        If Not pic.LockAspectRatio Then
+            pic.Height = Application.CentimetersToPoints(15) * pic.Height / pic.Width
+            
+            pic.Width = Application.CentimetersToPoints(15)
+            ' pic.Height = pic.Height * 0.8
+            
+           ' pic.Width = pic.Width * 0.8
+            
+        ' 如果图片已经锁定纵横比，则根据其宽高比例进行处理，使得其较短的一侧变为原来的80%
+        ElseIf pic.Width > pic.Height Then
+           ' pic.Width = pic.Width * 0.8
+            pic.Width = Application.CentimetersToPoints(15)
+        Else
+           ' pic.Width = pic.Width * 0.8
+            pic.Width = Application.CentimetersToPoints(15)
+        End If
+        ' 将该图片水平居中对齐
+        pic.Range.ParagraphFormat.SpaceBefore = 0 ' 段前间距设为0
+        pic.Range.ParagraphFormat.SpaceAfter = 0 ' 段后间距设为0
+        pic.Range.ParagraphFormat.Alignment = wdAlignParagraphCenter
+        pic.Range.ParagraphFormat.LineSpacingRule = wdLineSpaceMultiple
+        pic.Range.ParagraphFormat.LineSpacing = pic.Height
+    Next
+End Sub
+
+Sub pagesetup字()
+    Dim rng As Range
+    Set rng = ActiveDocument.Content '选中整个文档
+    rng.Select
+
+    With Selection.Font  '字体设置
+        .Name = "宋体"
+        .Size = 12 '号字体
+        .ColorIndex = wdBlack '黑色
+    End With
+End Sub
+Sub 删页眉页脚边框线()
+'删除 Word 文档中所有页眉页脚中的边框线。
+
+'具体来说，这段代码通过 With 语句将 ActiveDocument.Sections 对象赋给一个 Sections 变量，在该 Sections 对象中遍历所有页眉页脚。然后使用 HeaderFooter.Range 获取页眉页脚的内容所在的 Range 对象。接着使用 Paragraphs.Last.Range.ParagraphFormat.Borders(wdBorderLeft)、Paragraphs.Last.Range.ParagraphFormat.Borders(wdBorderRight) 和 Paragraphs.Last.Range.ParagraphFormat.Borders(wdBorderTop) 分别获取页眉页脚最后一行的段落格式，然后将它们的左、右和上边框线样式 (LineStyle) 设置为 wdLineStyleNone，即没有边框线。
+
+Dim sec As Section
+
+With ActiveDocument '进入文档编辑状态
+    For Each sec In .Sections '遍历所有节
+        With sec
+            .Headers(wdHeaderFooterPrimary).Range.Paragraphs.Last.Range.ParagraphFormat.Borders(wdBorderLeft).LineStyle = wdLineStyleNone '删除主要页眉的左边框线
+            .Headers(wdHeaderFooterPrimary).Range.Paragraphs.Last.Range.ParagraphFormat.Borders(wdBorderRight).LineStyle = wdLineStyleNone '删除主要页眉的右边框线
+            .Headers(wdHeaderFooterPrimary).Range.Paragraphs.Last.Range.ParagraphFormat.Borders(wdBorderTop).LineStyle = wdLineStyleNone '删除主要页眉的上边框线
+
+            .Headers(wdHeaderFooterFirstPage).Range.Paragraphs.Last.Range.ParagraphFormat.Borders(wdBorderLeft).LineStyle = wdLineStyleNone '删除首页页眉的左边框线
+            .Headers(wdHeaderFooterFirstPage).Range.Paragraphs.Last.Range.ParagraphFormat.Borders(wdBorderRight).LineStyle = wdLineStyleNone '删除首页页眉的右边框线
+            .Headers(wdHeaderFooterFirstPage).Range.Paragraphs.Last.Range.ParagraphFormat.Borders(wdBorderTop).LineStyle = wdLineStyleNone '删除首页页眉的上边框线
+
+            .Footers(wdHeaderFooterPrimary).Range.Paragraphs.Last.Range.ParagraphFormat.Borders(wdBorderLeft).LineStyle = wdLineStyleNone '删除主要页脚的左边框线
+            .Footers(wdHeaderFooterPrimary).Range.Paragraphs.Last.Range.ParagraphFormat.Borders(wdBorderRight).LineStyle = wdLineStyleNone '删除主要页脚的右边框线
+            .Footers(wdHeaderFooterPrimary).Range.Paragraphs.Last.Range.ParagraphFormat.Borders(wdBorderTop).LineStyle = wdLineStyleNone '删除主要页脚的上边框线
+
+            .Footers(wdHeaderFooterFirstPage).Range.Paragraphs.Last.Range.ParagraphFormat.Borders(wdBorderLeft).LineStyle = wdLineStyleNone '删除首页页脚的左边框线
+            .Footers(wdHeaderFooterFirstPage).Range.Paragraphs.Last.Range.ParagraphFormat.Borders(wdBorderRight).LineStyle = wdLineStyleNone '删除首页页脚的右边框线
+            .Footers(wdHeaderFooterFirstPage).Range.Paragraphs.Last.Range.ParagraphFormat.Borders(wdBorderTop).LineStyle = wdLineStyleNone '删除首页页脚的上边框线
+        End With
+    Next sec
+End With
+
+End Sub
+
+Sub 删页眉页脚()
+'删除 Word 文档中所有页眉页脚的内容。
+
+'具体来说，这段代码通过 With 语句将 ActiveDocument.Sections 对象赋给一个 Sections 变量，在该 Sections 对象中遍历所有节。然后使用 Delete 方法分别删除每个节中的页眉和页脚。
+
+Dim sec As Section
+
+With ActiveDocument '进入文档编辑状态
+    For Each sec In .Sections '遍历所有节
+        With sec
+            .Headers(wdHeaderFooterPrimary).Range.Delete '删除主要页眉
+            .Footers(wdHeaderFooterPrimary).Range.Delete '删除主要页脚
+            .Headers(wdHeaderFooterFirstPage).Range.Delete '删除首页页眉
+            .Footers(wdHeaderFooterFirstPage).Range.Delete '删除首页页脚
+        End With
+    Next sec
+End With
+
+End Sub
+
+Sub 删页眉横线()
+' 代码先将当前视图转到当前页面的页眉部分，即 ActiveWindow.ActivePane.View.SeekView = wdSeekCurrentPageHeader。然后通过 Selection 对象的 ParagraphFormat 属性获取当前段落的格式设置，并使用 Borders 属性的 wdBorderBottom 常量指定页眉的底边框。然后将该底边框的样式 (LineStyle) 设置为 wdLineStyleNone，即没有边框线。最后，将视图切换回 Word 主文档，即 ActiveWindow.ActivePane.View.SeekView = wdSeekMainDocument。
+
+' 综上所述，这段 VBA 代码的作用是删除 Word 文档中当前页的页眉横线。
+    ActiveWindow.ActivePane.View.SeekView = wdSeekCurrentPageHeader
+    Selection.ParagraphFormat.Borders(wdBorderBottom).LineStyle = wdLineStyleNone
+    ActiveWindow.ActivePane.View.SeekView = wdSeekMainDocument
+End Sub
+
+Sub 替换标点()
+ '将文本中的标点符号进行统一转换和规范化，以保证文档的整体规范和可读性。具体而言，这个宏会先将文本中的全角字母数字转换为半角字母数字；接着，将半角标点符号转换为相应的全角标点符号。然后，通过执行一连串复杂的正则表达式替换操作，将包括但不限于逗号、句号、冒号、括号等标点符号进行规范化处理。比如将"、"转成"．"，将"："转成":"，并删除一些无用的空格和换行符。这些操作最终能够使得文本更加整洁、易读、美观，提升文档的质量和效率。
+     '全角字母数字转半角
+     '半角标点转全角
+    With ActiveDocument.Content.Find
+        .Execute "([ 　^s^t]@)([、.．])", , , 1, , , , , , "\2", 2
+        .Execute "(^12)^13", , , 1, , , , , , "\1", 2
+        .Execute "(^13) ", , , , , , , , , "\1", 2
+
+        .Execute "([0-9０-９])、", , , 1, , , , , , "\1．", 2
+        .Execute "([0-9０-９]).([一-﨩])", , , 1, , , , , , "\1．\2", 2
+        .Execute "(^13[0-9０-９]{1,}).", , , 1, , , , , , "\1．", 2
+
+        .Execute "([0-9０-９])：([0-9０-９])", , , 1, , , , , , "\1:\2", 2
+        .Execute "([0-9０-９])，([0-9０-９])", , , 1, , , , , , "\1,\2", 2
+        .Execute "([0-9０-９])。([0-9０-９])", , , 1, , , , , , "\1.\2", 2
+
+        .Execute "([二一])([零〇○0Oo])(??年)", , , 1, , , , , , "\1〇\3", 2
+        .Execute "([二一]?)([零〇○0Oo])(?年)", , , 1, , , , , , "\1〇\3", 2
+        .Execute "([二一]??)([零〇○0Oo])(年)", , , 1, , , , , , "\1〇\3", 2
+        .Execute "?([0-9０-９]{4})(?)([0-9０-９]@号)", , , 1, , , , , , "〔\1〕\3", 2
+        .Execute "(^13联)(系)(人：*^13?[一-﨩][一-﨩][一-﨩]：)", , , 1, , , , , , "\1 \2 \3", 2
+
+        .Execute "[：:] ", , , , , , , , , "：", 2
+        .Execute "）^9", , , , , , , , , "）", 2
+        .Execute " (“)", , , 1, , , , , , "\1", 2
+        .Execute "(”) ", , , 1, , , , , , "\1", 2
+        .Execute "(》)(《)", , , 1, , , , , , "\1、\2", 2
+        .Execute "(。)(（*）)(^13)", , , 1, , , , , , "\2\1\3", 2
+    End With
+End Sub
+
+Sub ResizeImg完美显示页面视图()
+'此宏为雨雪霏霏特别奉献的小偏方，欢迎各位朋友测试。这段VBA代码的作用是使用打印预览来完美显示Word文档中的图片和表格。具体来说，它的执行流程如下：
+
+'切换到页面视图下，使用打印预览功能（ActiveDocument.PrintPreview）
+
+'关闭打印预览（ActiveDocument.ClosePrintPreview）
+
+'切换回常规视图（ActiveWindow.View.Type = wdNormalView）
+
+'再次切换到打印视图（ActiveWindow.View.Type = wdPrintView）
+
+'整个过程的主要目的是利用打印预览的功能刷新Word文档的显示，使其更加精准地呈现出文档中的图片和表格。在这个过程中，文档会从页面视图切换到打印视图，然后再切换回常规视图，这些操作可以有助于强制Word软件重新计算并显示文档内容，从而确保图片和表格排版得到正确的呈现。
+
+'需要注意的是，运行该代码之前需要先选中Word文档中需要处理的部分，如果没有选中则默认处理整个文档。另外，该代码只适用于Word 2007及以后版本。
+'如果文档中的各种图片、表格显示迟滞、错位，运行此宏，将在页面视图下完美显示它们。
+
+
+ActiveDocument.PrintPreview
+ActiveDocument.ClosePrintPreview
+ActiveWindow.View.Type = wdNormalView
+ActiveWindow.View.Type = wdPrintView
+End Sub
+
+Sub 删除无效样式()
+    For Each objStyle In ActiveDocument.Styles
+    On Error Resume Next
+    If objStyle.BuiltIn = False And objStyle.InUse = True Then
+    objStyle.Delete
+    End If
+    Next
+    End Sub
 
