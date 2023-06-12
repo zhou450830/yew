@@ -1,0 +1,307 @@
+import os
+import shutil
+import docx
+
+# 定义一个函数，用于判断是否可以正常读取docx文件
+def check_docx_file(filename):
+    try:
+        doc = docx.Document(filename)
+        return True
+    except:
+        return False
+
+# 定义一个函数，用于修复docx文件
+def repair_docx_file(src_filename, dst_filename):
+    try:
+        doc = docx.Document(src_filename)
+        doc.save(dst_filename)
+        return True
+    except:
+        return False
+
+# 定义一个函数，用于扫描目录下所有的docx文件，并进行判断和修复
+def scan_folder(folder_path):
+    ok_folder_path = os.path.join(folder_path, '完好doc')
+    os.makedirs(ok_folder_path, exist_ok=True)
+    repair_folder_path = os.path.join(folder_path, '修复doc')
+    os.makedirs(repair_folder_path, exist_ok=True)
+    for filename in os.listdir(folder_path):
+        if filename.endswith('.docx') or filename.endswith('.doc'):
+            full_path = os.path.join(folder_path, filename)
+            if check_docx_file(full_path):
+                print(full_path, '文件完好无损！')
+                ok_file_path = os.path.join(ok_folder_path, filename)
+                shutil.move(full_path, ok_file_path)
+            else:
+                
+                repair_file_path = os.path.join(repair_folder_path, filename)
+                if repair_docx_file(full_path, repair_file_path):
+                    print(full_path, '文件已成功修复！')
+                    repair_file_path = os.path.join(repair_folder_path, filename)
+                    shutil.move(full_path, repair_file_path)
+                else:
+                    print(full_path, '文件修复失败！')
+                    os.remove(full_path)
+
+# 获取用户输入的文件夹路径
+while True:
+    folder_path = input("请输入需要整理的文件夹路径：")
+    if not os.path.exists(folder_path):
+        print('输入的路径不存在，请重新输入！')
+    else:
+        break
+
+# 执行扫描和修复操作
+scan_folder(folder_path)
+import os
+import shutil
+import openpyxl
+
+# 定义一个函数，用于判断是否可以正常读取Excel文件
+def check_excel_file(filename):
+    try:
+        workbook = openpyxl.load_workbook(filename)
+        return True
+    except:
+        return False
+
+# 定义一个函数，用于修复Excel文件
+def repair_excel_file(src_filename, dst_filename):
+    try:
+        workbook = openpyxl.load_workbook(src_filename)
+        workbook.save(dst_filename)
+        return True
+    except:
+        return False
+
+# 定义一个函数，用于扫描目录下所有的Excel文件，并进行判断和修复
+# 定义一个函数，用于扫描目录下所有的Excel文件，并进行判断和修复
+def scan_folder(folder_path):
+    ok_folder_path = os.path.join(folder_path, '完好xlsx')
+    os.makedirs(ok_folder_path, exist_ok=True)
+    repair_folder_path = os.path.join(folder_path, '修复xlsx')
+    os.makedirs(repair_folder_path, exist_ok=True)
+    for filename in os.listdir(folder_path):
+        if filename.endswith('.xlsx') or filename.endswith('.xls'):
+            full_path = os.path.join(folder_path, filename)
+            if check_excel_file(full_path):
+                print(full_path, '文件完好无损！')
+                ok_file_path = os.path.join(ok_folder_path, filename)
+                shutil.move(full_path, ok_file_path)
+            else:
+                repair_file_path = os.path.join(repair_folder_path, filename)
+                if repair_excel_file(full_path, repair_file_path):
+                    print(full_path, '文件已成功修复！')
+                    repair_file_path = os.path.join(repair_folder_path, filename)
+                    shutil.move(full_path, repair_file_path)
+                else:
+                    print(full_path, '文件修复失败！')
+                    # 检查文件是否可写
+                    if os.access(full_path, os.W_OK):
+                        os.remove(full_path)
+                    else:
+                        print('文件不可写，无法删除！')
+
+# 获取用户输入的文件夹路径
+while True:
+    folder_path = input("请输入需要整理的文件夹路径：")
+    if not os.path.exists(folder_path):
+        print('输入的路径不存在，请重新输入！')
+    else:
+        break
+
+# 执行扫描和修复操作
+scan_folder(folder_path)
+
+import os
+import shutil
+import win32com.client as win32
+from time import sleep
+
+# 定义一个函数，用于判断是否可以正常读取PPT文件
+def check_ppt_file(filename):
+    try:
+        ppt_app = win32.gencache.EnsureDispatch('Powerpoint.Application')
+        ppt_app.Visible = False
+        ppt_file = ppt_app.Presentations.Open(filename)
+        ppt_file.Close()
+        ppt_app.Quit()
+        return True
+    except:
+        return False
+
+# 定义一个函数，用于修复PPT文件
+def repair_ppt_file(src_filename, dst_filename):
+    try:
+        ppt_app = win32.gencache.EnsureDispatch('Powerpoint.Application')
+        ppt_app.Visible = False
+        ppt_file = ppt_app.Presentations.Open(src_filename)
+        ppt_file.SaveAs(dst_filename)
+        ppt_file.Close()
+        ppt_app.Quit()
+        return True
+    except:
+        return False
+
+# 定义一个函数，用于扫描目录下所有的PPT文件，并进行判断和修复
+def scan_folder(folder_path):
+    ok_folder_path = os.path.join(folder_path, '完好pptx')
+    os.makedirs(ok_folder_path, exist_ok=True)
+    repair_folder_path = os.path.join(folder_path, '修复pptx')
+    os.makedirs(repair_folder_path, exist_ok=True)
+    for filename in os.listdir(folder_path):
+        if filename.endswith('.ppt') or filename.endswith('.pptx'):
+            full_path = os.path.join(folder_path, filename)
+            if check_ppt_file(full_path):
+                print(full_path, '文件完好无损！')
+                ok_file_path = os.path.join(ok_folder_path, filename)
+                shutil.move(full_path, ok_file_path)
+            else:
+                repair_file_path = os.path.join(repair_folder_path, filename)
+                if repair_ppt_file(full_path, repair_file_path):
+                    print(full_path, '文件已成功修复！')
+                    repair_file_path = os.path.join(repair_folder_path, filename)
+                    shutil.move(full_path, repair_file_path)
+                else:
+                    print(full_path, '文件修复失败！')
+                    os.remove(full_path)
+                    sleep(1)
+
+# 获取用户输入的文件夹路径
+while True:
+    folder_path = input("请输入需要整理的文件夹路径：")
+    if not os.path.exists(folder_path):
+        print('输入的路径不存在，请重新输入！')
+    else:
+        break
+
+# 执行扫描和修复操作
+scan_folder(folder_path)
+
+import os
+import shutil
+from PIL import Image
+
+# 定义一个函数，用于判断是否可以正常打开图片文件
+def check_image_file(filename):
+    try:
+        img = Image.open(filename)
+        img.close()
+        return True
+    except:
+        return False
+
+# 定义一个函数，用于修复图片文件
+def repair_image_file(src_filename, dst_filename):
+    try:
+        img = Image.open(src_filename)
+        img.save(dst_filename)
+        img.close()
+        return True
+    except:
+        return False
+
+# 定义一个函数，用于扫描目录下所有的图片文件，并进行判断和修复
+def scan_folder(folder_path):
+    ok_folder_path = os.path.join(folder_path, '完好图片')
+    os.makedirs(ok_folder_path, exist_ok=True)
+    repair_folder_path = os.path.join(folder_path, '修复图片')
+    os.makedirs(repair_folder_path, exist_ok=True)
+    for filename in os.listdir(folder_path):
+        if filename.endswith('.jpg') or filename.endswith('.jpeg') or filename.endswith('.png'):
+            full_path = os.path.join(folder_path, filename)
+            if check_image_file(full_path):
+                print(full_path, '文件完好无损！')
+                ok_file_path = os.path.join(ok_folder_path, filename)
+                shutil.move(full_path, ok_file_path)
+            else:
+                repair_file_path = os.path.join(repair_folder_path, filename)
+                if repair_image_file(full_path, repair_file_path):
+                    print(full_path, '文件已成功修复！')
+                    repair_file_path = os.path.join(repair_folder_path, filename)
+                    shutil.move(full_path, repair_file_path)
+                else:
+                    print(full_path, '文件修复失败！')
+                    os.remove(full_path)
+
+# 获取用户输入的文件夹路径
+while True:
+    folder_path = input("请输入需要整理的文件夹路径：")
+    if not os.path.exists(folder_path):
+        print('输入的路径不存在，请重新输入！')
+    else:
+        break
+
+# 执行扫描和修复操作
+scan_folder(folder_path)
+
+import os
+import shutil
+import zipfile
+import rarfile
+
+# 定义一个函数，用于判断是否可以正常解压缩压缩文件
+def check_compress_file(filename):
+    try:
+        if filename.endswith('.zip'):
+            with zipfile.ZipFile(filename, 'r') as zf:
+                zf.testzip()
+        elif filename.endswith('.rar'):
+            with rarfile.RarFile(filename, 'r') as rf:
+                rf.testrar()
+        return True
+    except:
+        return False
+
+# 定义一个函数，用于修复压缩文件
+def repair_compress_file(src_filename, dst_filename):
+    try:
+        if src_filename.endswith('.zip'):
+            with zipfile.ZipFile(src_filename, 'r') as src_zip:
+                with zipfile.ZipFile(dst_filename, 'w') as dst_zip:
+                    for item in src_zip.infolist():
+                        data = src_zip.read(item.filename)
+                        dst_zip.writestr(item, data)
+        elif src_filename.endswith('.rar'):
+            with rarfile.RarFile(src_filename, 'r') as src_rar:
+                with rarfile.RarFile(dst_filename, 'w') as dst_rar:
+                    for item in src_rar.infolist():
+                        data = src_rar.read(item.filename)
+                        dst_rar.writestr(item, data)
+        return True
+    except:
+        return False
+
+# 定义一个函数，用于扫描目录下所有的压缩文件，并进行判断和修复
+def scan_folder(folder_path):
+    ok_folder_path = os.path.join(folder_path, '完好压缩文件')
+    os.makedirs(ok_folder_path, exist_ok=True)
+    repair_folder_path = os.path.join(folder_path, '修复压缩文件')
+    os.makedirs(repair_folder_path, exist_ok=True)
+    for filename in os.listdir(folder_path):
+        if filename.endswith('.zip') or filename.endswith('.rar'):
+            full_path = os.path.join(folder_path, filename)
+            if check_compress_file(full_path):
+                print(full_path, '文件完好无损！')
+                ok_file_path = os.path.join(ok_folder_path, filename)
+                shutil.move(full_path, ok_file_path)
+            else:
+                repair_file_path = os.path.join(repair_folder_path, filename)
+                if repair_compress_file(full_path, repair_file_path):
+                    print(full_path, '文件已成功修复！')
+                    repair_file_path = os.path.join(repair_folder_path, filename)
+                    shutil.move(full_path, repair_file_path)
+                else:
+                    print(full_path, '文件修复失败！')
+                    os.remove(full_path)
+
+# 获取用户输入的文件夹路径
+while True:
+    folder_path = input("请输入需要整理的文件夹路径：")
+    if not os.path.exists(folder_path):
+        print('输入的路径不存在，请重新输入！')
+    else:
+        break
+
+# 执行扫描和修复操作
+scan_folder(folder_path) 
